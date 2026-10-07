@@ -7,7 +7,6 @@ import FeaturesSection from "@/components/home/FeaturesSection";
 import IndustrySection from "@/components/home/IndustrySection";
 import TestimonialSection from "@/components/home/TestimonialSection";
 import Footer from "@/components/ui/Footer";
-
 export default function Home() {
   return (
     <main className="overflow-x-hidden">
