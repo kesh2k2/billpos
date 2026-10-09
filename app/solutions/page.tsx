@@ -3,11 +3,13 @@ import Footer from "@/components/ui/Footer";
 
 import SolutionsHero from "@/components/solutions/SolutionsHero";
 import SolutionSelector from "@/components/solutions/SolutionSelector";
+import RetailSolution from "@/components/solutions/RetailSolution";
+import RestaurantSolution from "@/components/solutions/RestaurantSolution";
 import FloatingGallery from "@/components/solutions/FloatingGallery";
+import MultiSolutionOverview from "@/components/solutions/MultiSolutionOverview";
+
 // import FloatingGallery from "@/components/solutions/FloatingGallery";
 // import SolutionOverview from "@/components/solutions/SolutionOverview";
-// import RetailSolution from "@/components/solutions/RetailSolution";
-// import RestaurantSolution from "@/components/solutions/RestaurantSolution";
 // import FashionSolution from "@/components/solutions/FashionSolution";
 // import SalonSolution from "@/components/solutions/SalonSolution";
 // import SMESolution from "@/components/solutions/SMESolution";
@@ -22,6 +24,13 @@ export default function SolutionsPage() {
       <SolutionsHero />
 
       <SolutionSelector />
+
+      <RetailSolution />
+      
+      <RestaurantSolution />
+
+      <MultiSolutionOverview />
+      
 
       <FloatingGallery />
 
