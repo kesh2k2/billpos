@@ -349,18 +349,14 @@ export default function Contacts({
 
   /* ---------------- Actions ---------------- */
 
-  const buildText = () =>
-    [
-      `Name: ${values.name.trim()}`,
-      values.phone.trim() && `Phone: ${values.phone.trim()}`,
-      values.email.trim() && `Email: ${values.email.trim()}`,
-      values.topic && `Interested in: ${values.topic}`,
-      `Preferred contact: ${values.preferred}`,
-      "",
-      values.message.trim(),
-    ]
-      .filter((l) => l !== false)
-      .join("\n");
+  const buildText = (): string => {
+    const lines: string[] = [`Name: ${values.name.trim()}`];
+    if (values.phone.trim()) lines.push(`Phone: ${values.phone.trim()}`);
+    if (values.email.trim()) lines.push(`Email: ${values.email.trim()}`);
+    if (values.topic) lines.push(`Interested in: ${values.topic}`);
+    lines.push(`Preferred contact: ${values.preferred}`, "", values.message.trim());
+    return lines.join("\n");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -494,7 +490,7 @@ export default function Contacts({
               label="Email"
               lines={[EMAIL]}
               cta="Write to us"
-              href={`mailto:${EMAIL}`}
+              href={`mailto:${EMAIL}?subject=${encodeURIComponent("Enquiry from the website")}`}
               variant="sky"
               tilt="1deg"
             />
