@@ -1,3 +1,9 @@
+
+"use client";
+
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+
 import Navbar from "@/components/ui/Navbar";
 import Footer from "@/components/ui/Footer";
 
@@ -8,15 +14,19 @@ import RestaurantSolution from "@/components/solutions/RestaurantSolution";
 import FloatingGallery from "@/components/solutions/FloatingGallery";
 import MultiSolutionOverview from "@/components/solutions/MultiSolutionOverview";
 
-// import FloatingGallery from "@/components/solutions/FloatingGallery";
-// import SolutionOverview from "@/components/solutions/SolutionOverview";
-// import FashionSolution from "@/components/solutions/FashionSolution";
-// import SalonSolution from "@/components/solutions/SalonSolution";
-// import SMESolution from "@/components/solutions/SMESolution";
-// import CommonFeatures from "@/components/solutions/CommonFeatures";
-// import SolutionsCTA from "@/components/solutions/SolutionsCTA";
-
 export default function SolutionsPage() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (pathname === "/solutions") {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "instant",
+      });
+    }
+  }, [pathname]);
+
   return (
     <main>
       <Navbar />
@@ -26,33 +36,12 @@ export default function SolutionsPage() {
       <SolutionSelector />
 
       <RetailSolution />
-      
+
       <RestaurantSolution />
 
       <MultiSolutionOverview />
-      
 
       <FloatingGallery />
-
-
-
-      {/* <SolutionSelector />
-
-      <SolutionOverview />
-
-      <RetailSolution />
-
-      <RestaurantSolution />
-
-      <FashionSolution />
-
-      <SalonSolution />
-
-      <SMESolution />
-
-      <CommonFeatures />
-
-      <SolutionsCTA /> */}
 
       <Footer />
     </main>

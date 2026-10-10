@@ -289,9 +289,14 @@ export default function Navbar() {
     };
   }, [pathname, updateNavTheme]);
 
-  // Close the mobile menu after navigation.
+  // Reset scroll position whenever the page changes.
   useEffect(() => {
     setMobileMenuOpen(false);
+
+    // Preserve anchor navigation, such as /contact#demo.
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
   }, [pathname]);
 
   // Prevent background scrolling while the mobile menu is open.
