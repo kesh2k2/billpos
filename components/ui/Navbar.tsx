@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -59,23 +58,27 @@ const themeStyles: Record<
     logoMark: string;
   }
 > = {
+  /* ------------------------------------------------------------------
+   * LIGHT THEME — for WHITE / LIGHT page sections.
+   * Renders as a DARK glass bar so it stands out clearly against
+   * bright backgrounds. White text on dark glass = readable.
+   * ------------------------------------------------------------------ */
   light: {
-    // Dark, low-opacity glass over light sections.
-    nav: "border-white/10 bg-slate-950/[0.20] text-white shadow-[0_8px_35px_rgba(0,0,0,0.10)]",
+    nav: "border-white/10 bg-slate-950/75 text-white shadow-[0_8px_35px_rgba(0,0,0,0.22)]",
     logoBox: "border-white/15 bg-white/[0.08]",
     logoText: "text-white",
     logoAccent: "text-indigo-300",
     linkActive:
       "bg-white/[0.14] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]",
     linkInactive:
-      "text-white/70 hover:bg-white/[0.08] hover:text-white",
+      "text-white/75 hover:bg-white/[0.08] hover:text-white",
     linkIconActive: "text-indigo-300",
-    linkIconInactive: "text-white/55 group-hover:text-indigo-300",
+    linkIconInactive: "text-white/60 group-hover:text-indigo-300",
     indicator: "bg-indigo-300",
     mobileButton:
-      "border-white/15 bg-slate-950/[0.15] text-white hover:bg-white/[0.10]",
+      "border-white/15 bg-slate-950/60 text-white hover:bg-white/[0.10]",
     mobilePanel:
-      "border-white/[0.14] bg-slate-950/[0.78] shadow-[0_20px_60px_rgba(0,0,0,0.20)]",
+      "border-white/[0.14] bg-slate-950/92 shadow-[0_20px_60px_rgba(0,0,0,0.35)]",
     mobileHeading: "text-white/55",
     mobileBrand: "text-white/40",
     mobileLinkActive: "border-white/[0.12] bg-white/[0.10]",
@@ -91,37 +94,46 @@ const themeStyles: Record<
     logoMark: "border-white/15 bg-white/[0.08] text-indigo-300",
   },
 
+  /* ------------------------------------------------------------------
+   * DARK THEME — for BLACK / DARK page sections.
+   * Renders as a WHITE glass bar so it stands out clearly against
+   * dark backgrounds. Dark text on light glass = readable.
+   * ------------------------------------------------------------------ */
   dark: {
-    nav: "border-white/[0.10] bg-black/[0.16] text-white shadow-[0_8px_35px_rgba(0,0,0,0.12)]",
-    logoBox: "border-white/[0.13] bg-white/[0.06]",
-    logoText: "text-white",
-    logoAccent: "text-indigo-300",
+    nav: "border-slate-900/10 bg-white/85 text-slate-900 shadow-[0_8px_35px_rgba(0,0,0,0.10)]",
+    logoBox: "border-slate-900/10 bg-slate-900/[0.04]",
+    logoText: "text-slate-900",
+    logoAccent: "text-indigo-600",
     linkActive:
-      "bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]",
+      "bg-slate-900/[0.08] text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]",
     linkInactive:
-      "text-white/65 hover:bg-white/[0.07] hover:text-white",
-    linkIconActive: "text-indigo-300",
-    linkIconInactive: "text-white/45 group-hover:text-indigo-300",
-    indicator: "bg-indigo-300",
+      "text-slate-600 hover:bg-slate-900/[0.05] hover:text-slate-900",
+    linkIconActive: "text-indigo-600",
+    linkIconInactive: "text-slate-400 group-hover:text-indigo-600",
+    indicator: "bg-indigo-600",
     mobileButton:
-      "border-white/[0.14] bg-black/[0.12] text-white hover:bg-white/[0.08]",
+      "border-slate-900/15 bg-white/75 text-slate-900 hover:bg-slate-900/[0.06]",
     mobilePanel:
-      "border-white/[0.12] bg-black/[0.76] shadow-[0_20px_60px_rgba(0,0,0,0.25)]",
-    mobileHeading: "text-white/50",
-    mobileBrand: "text-white/35",
-    mobileLinkActive: "border-white/[0.12] bg-white/[0.09]",
+      "border-slate-900/10 bg-white/95 shadow-[0_20px_60px_rgba(0,0,0,0.12)]",
+    mobileHeading: "text-slate-500",
+    mobileBrand: "text-slate-400",
+    mobileLinkActive: "border-slate-900/[0.10] bg-slate-900/[0.05]",
     mobileLinkInactive:
-      "border-transparent hover:border-white/[0.08] hover:bg-white/[0.05]",
-    mobileIconActive: "border-indigo-300/20 bg-indigo-400/[0.12]",
-    mobileIconInactive: "border-white/[0.10] bg-white/[0.04]",
-    mobileLabelActive: "text-white",
-    mobileLabelInactive: "text-white/70",
-    mobileCurrent: "text-indigo-300",
-    mobileArrowActive: "text-indigo-300",
-    mobileArrowInactive: "text-white/35",
-    logoMark: "border-white/[0.13] bg-white/[0.06] text-indigo-300",
+      "border-transparent hover:border-slate-900/[0.08] hover:bg-slate-900/[0.04]",
+    mobileIconActive: "border-indigo-500/20 bg-indigo-500/[0.10]",
+    mobileIconInactive: "border-slate-900/[0.10] bg-slate-900/[0.03]",
+    mobileLabelActive: "text-slate-900",
+    mobileLabelInactive: "text-slate-600",
+    mobileCurrent: "text-indigo-600",
+    mobileArrowActive: "text-indigo-600",
+    mobileArrowInactive: "text-slate-400",
+    logoMark: "border-slate-900/[0.10] bg-slate-900/[0.04] text-indigo-600",
   },
 
+  /* ------------------------------------------------------------------
+   * BLUE THEME — for the deep navy/blue section. Kept as a dark glass
+   * with a subtle sky tint.
+   * ------------------------------------------------------------------ */
   blue: {
     nav: "border-white/[0.12] bg-[#071A2D]/[0.18] text-white shadow-[0_8px_35px_rgba(0,0,0,0.12)]",
     logoBox: "border-white/[0.14] bg-white/[0.07]",
@@ -196,7 +208,9 @@ export default function Navbar() {
         current === requestedTheme ? current : requestedTheme
       );
     } else {
-      setNavTheme("dark");
+      // Fallback when no section is tagged — light theme = dark glass,
+      // which reads well on the site's default light backgrounds.
+      setNavTheme("light");
     }
   }, []);
 
@@ -432,7 +446,7 @@ export default function Navbar() {
           {/* DESKTOP CTA */}
           <div className="ml-auto hidden items-center lg:flex">
             <Link
-              href="/contact#demo"
+              href="/demo"
               className="
                 group relative inline-flex h-[42px] items-center gap-2
                 overflow-hidden rounded-xl border border-indigo-400/20
