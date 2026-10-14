@@ -118,7 +118,7 @@ const socialLinks = [
   },
   {
     label: "Email",
-    href: "mailto:hello@billpos.com",
+    href: "mailto:hello@qdeskai.com",
     icon: MailIcon,
   },
 ];
@@ -130,7 +130,7 @@ const footerColumns = [
       { label: "Home", href: "/" },
       { label: "About Us", href: "/about" },
       { label: "Contact", href: "/contact" },
-      { label: "Careers", href: "/careers" },
+      { label: "Careers", href: "https://qdeskai.com/" },
     ],
   },
   {
@@ -139,33 +139,33 @@ const footerColumns = [
       { label: "Solutions", href: "/solutions" },
       { label: "Packages", href: "/packages" },
       { label: "Request Demo", href: "/demo" },
-      { label: "Pricing", href: "/pricing" },
+      { label: "Pricing", href: "/packages#pricing" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { label: "Help Center", href: "/help" },
-      { label: "Documentation", href: "/docs" },
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms of Service", href: "/terms" },
+      { label: "Help Center", href: "https://qdeskai.com/" },
+      { label: "Documentation", href: "https://qdeskai.com/" },
+      { label: "Privacy Policy", href: "https://qdeskai.com/" },
+      { label: "Terms of Service", href: "https://qdeskai.com/" },
     ],
   },
 ];
 
 const contactItems = [
   {
-    label: "hello@billpos.com",
-    href: "mailto:hello@billpos.com",
+    label: "hello@qdeskai.com",
+    href: "mailto:hello@qdeskai.com",
     icon: Mail,
   },
   {
-    label: "+1 (555) 012-3456",
-    href: "tel:+15550123456",
+    label: "+94 77 291 3369",
+    href: "tel:+94772913369",
     icon: Phone,
   },
   {
-    label: "123 Market Street, San Francisco",
+    label: "Nanuoya, Kiribathkumbura, Kandy",
     href: "https://maps.google.com",
     icon: MapPin,
   },
@@ -281,28 +281,6 @@ export default function Footer() {
         "
       />
 
-      {/* Giant watermark */}
-      <span
-        className="
-          pointer-events-none
-          absolute
-          -bottom-4
-          left-1/2
-          hidden
-          -translate-x-1/2
-          select-none
-          text-[170px]
-          font-semibold
-          leading-none
-          tracking-[-0.06em]
-          text-white/[0.015]
-          lg:block
-        "
-        aria-hidden="true"
-      >
-        BillPOS
-      </span>
-
       {/* CONTENT */}
       <div
         className="
@@ -311,9 +289,9 @@ export default function Footer() {
           mx-auto
           max-w-[1180px]
           px-4
-          py-14
+          py-10
           sm:px-6
-          sm:py-16
+          sm:py-14
           lg:px-8
           lg:py-20
         "
@@ -323,7 +301,7 @@ export default function Footer() {
           className="
             grid
             grid-cols-1
-            gap-10
+            gap-8
             sm:grid-cols-2
             lg:grid-cols-[1.8fr_1fr_1fr_1.2fr]
             lg:gap-8
@@ -383,11 +361,13 @@ export default function Footer() {
 
             <p
               className="
-                mt-5
+                mt-4
                 max-w-xs
-                text-[13px]
+                text-[12px]
                 leading-relaxed
                 text-white/45
+                sm:mt-5
+                sm:text-[13px]
               "
             >
               Smart billing and point-of-sale software built for
@@ -396,7 +376,7 @@ export default function Footer() {
             </p>
 
             {/* Social icons */}
-            <div className="mt-6 flex flex-wrap items-center gap-2.5">
+            <div className="mt-5 flex flex-wrap items-center gap-2.5 sm:mt-6">
               {socialLinks.map((social) => {
                 const Icon = social.icon;
                 const external = social.href.startsWith("http");
@@ -467,43 +447,53 @@ export default function Footer() {
                 {column.title}
               </h3>
 
-              <ul className="mt-5 space-y-3">
-                {column.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="
-                        group
-                        inline-flex
-                        items-center
-                        text-[13px]
-                        text-white/55
-                        transition-colors
-                        duration-300
-                        hover:text-white
-                      "
-                    >
-                      <span className="relative">
-                        {link.label}
+              <ul className="mt-4 space-y-2.5 sm:mt-5 sm:space-y-3">
+                {column.links.map((link) => {
+                  const external = link.href.startsWith("http");
 
-                        <span
-                          className="
-                            absolute
-                            -bottom-0.5
-                            left-0
-                            h-[1px]
-                            w-0
-                            rounded-full
-                            bg-[#aeb7ff]
-                            transition-all
-                            duration-300
-                            group-hover:w-full
-                          "
-                        />
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+                  return (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        {...(external
+                          ? {
+                              target: "_blank",
+                              rel: "noopener noreferrer",
+                            }
+                          : {})}
+                        className="
+                          group
+                          inline-flex
+                          items-center
+                          text-[13px]
+                          text-white/55
+                          transition-colors
+                          duration-300
+                          hover:text-white
+                        "
+                      >
+                        <span className="relative">
+                          {link.label}
+
+                          <span
+                            className="
+                              absolute
+                              -bottom-0.5
+                              left-0
+                              h-[1px]
+                              w-0
+                              rounded-full
+                              bg-[#aeb7ff]
+                              transition-all
+                              duration-300
+                              group-hover:w-full
+                            "
+                          />
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
@@ -522,7 +512,7 @@ export default function Footer() {
               Get in touch
             </h3>
 
-            <ul className="mt-5 space-y-4">
+            <ul className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
               {contactItems.map((item) => {
                 const Icon = item.icon;
 
@@ -580,7 +570,7 @@ export default function Footer() {
               href="/demo"
               className="
                 group
-                mt-6
+                mt-5
                 inline-flex
                 h-[42px]
                 items-center
@@ -603,6 +593,7 @@ export default function Footer() {
                 hover:border-[#d5d8ff]/50
                 hover:bg-[#6673e8]/65
                 hover:shadow-[0_10px_30px_rgba(76,87,220,0.22)]
+                sm:mt-6
               "
             >
               <span className="relative z-10">Request Demo</span>
@@ -627,24 +618,26 @@ export default function Footer() {
         <div
           className="
             footer-bottom
-            mt-14
+            mt-10
             flex
             flex-col
-            gap-5
+            items-center
+            gap-4
             border-t
             border-white/[0.08]
             pt-6
+            sm:mt-14
             sm:flex-row
-            sm:items-center
             sm:justify-between
+            sm:gap-5
           "
         >
-          <p className="text-[11px] text-white/30">
-            © {new Date().getFullYear()} BillPOS. All rights
-            reserved.
+          {/* Copyright — centered on mobile */}
+          <p className="text-center text-[11px] text-white/30 sm:text-left">
+            © 2026 BillPOS. All rights reserved.
           </p>
 
-          <div className="flex flex-wrap items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
             <Link
               href="/privacy"
               className="
@@ -708,6 +701,42 @@ export default function Footer() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ============================================================
+          GIANT WATERMARK — now BELOW the content, above the copyright
+          ============================================================ */}
+      <div
+        className="
+          relative
+          z-0
+          mx-auto
+          w-full
+          max-w-[1180px]
+          px-4
+          sm:px-6
+          lg:px-8
+        "
+      >
+        <span
+          className="
+            pointer-events-none
+            block
+            w-full
+            select-none
+            text-center
+            text-[22vw]
+            font-semibold
+            leading-[0.8]
+            tracking-[-0.08em]
+            text-white/[0.02]
+            sm:text-[16vw]
+            lg:text-[170px]
+          "
+          aria-hidden="true"
+        >
+          BillPOS
+        </span>
       </div>
     </footer>
   );

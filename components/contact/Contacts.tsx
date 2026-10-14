@@ -1,9 +1,45 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+/* ============================================================
+ * Contacts Section
+ * ------------------------------------------------------------
+ * Collage aesthetic matched to the Packages + About sections:
+ *   • Cormorant Garamond + Jost
+ *   • Torn-paper tags, halftone dots, grain, washi tape
+ *   • Letter-bounce heading (with hover hop)
+ *   • Word-mask intro reveal
+ *   • Card drops with back.out / elastic.out
+ *   • Wobbling sticker on the schedule card
+ *   • Parallax collage backdrop
+ *
+ * All existing functions/features preserved:
+ *   - validate() + Field component
+ *   - onSubmit prop passthrough
+ *   - mailto fallback
+ *   - WhatsApp deep-link
+ *   - preferred contact radiogroup
+ *   - topic chips
+ *   - status: idle / sending / sent / error
+ *   - reset / send-another flow
+ *   - all a11y attributes
+ *
+ * Scroll-restoration fix:
+ *   Uses the shared `useResetScrollOnMount` hook from
+ *   `@/lib/use-reset-scroll-on-mount` so the section always opens
+ *   at its own top edge when navigated to.
+ * ============================================================ */
+
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Cormorant_Garamond, Jost } from "next/font/google";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useResetScrollOnMount } from "@/lib/use-reset-scroll-on-mount";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -133,6 +169,57 @@ const reduceMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+/* ------------------------------------------------------------------ */
+/* Text splitting helpers (no paid GSAP plugin needed)                */
+/* ------------------------------------------------------------------ */
+
+/** Every letter becomes its own span so it can bounce. Words never break in the middle. */
+function SplitChars({ text }: { text: string }) {
+  const words = text.split(" ");
+  return (
+    <>
+      {words.map((word, wi) => (
+        <span key={wi}>
+          <span className="inline-block whitespace-nowrap">
+            {word.split("").map((ch, ci) => (
+              <span
+                key={ci}
+                data-char="1"
+                className="ct-char inline-block will-change-transform"
+              >
+                {ch}
+              </span>
+            ))}
+          </span>
+          {wi < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** Every word rises out of its own mask for the staggered reveal. */
+function SplitWords({ text }: { text: string }) {
+  const words = text.split(" ");
+  return (
+    <>
+      {words.map((word, i) => (
+        <span key={i}>
+          <span className="-mb-[3px] inline-block overflow-hidden pb-[3px] align-top">
+            <span className="ct-word inline-block will-change-transform">
+              {word}
+            </span>
+          </span>
+          {i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Info card                                                          */
 /* ------------------------------------------------------------------ */
@@ -156,6 +243,7 @@ function InfoCard({
   variant,
   tilt,
   className = "",
+  featured = false,
 }: {
   Icon: any;
   label: string;
@@ -166,26 +254,31 @@ function InfoCard({
   variant: Variant;
   tilt: string;
   className?: string;
+  featured?: boolean;
 }) {
   const v = variantStyles[variant];
+
   const body = (
     <>
       <Grain opacity={variant === "navy" ? 0.25 : 0.1} />
-      <span className={`relative flex h-11 w-11 items-center justify-center rounded-full ${v.icon}`}>
+      <span className={`ct-icon relative flex h-11 w-11 items-center justify-center rounded-full ${v.icon}`}>
         <Icon className="h-[18px] w-[18px]" />
       </span>
-      <p className={`${serif.className} relative mt-4 text-[26px] italic leading-none`}>{label}</p>
-      <div className="relative mt-3 text-[15px] font-light leading-6">
+      <p className={`${serif.className} ct-line relative mt-4 text-[26px] italic leading-none`}>
+        {label}
+      </p>
+      <div className="ct-line relative mt-3 text-[15px] font-light leading-6">
         {lines.map((l) => (
           <p key={l} className="break-words">{l}</p>
         ))}
       </div>
       {cta && (
-        <p className="relative mt-4 inline-flex items-center gap-1.5 text-[13px] font-normal">
+        <p className="ct-line relative mt-4 inline-flex items-center gap-1.5 text-[13px] font-normal">
           {cta}
           <ArrowUpRight className="h-3.5 w-3.5 transition group-hover/card:-translate-y-0.5 group-hover/card:translate-x-0.5" />
         </p>
       )}
+      {featured && <span className="ct-sticker absolute -top-3 right-5 z-20" aria-hidden="true" />}
     </>
   );
 
@@ -304,6 +397,11 @@ export default function Contacts({
   const [errors, setErrors] = useState<Errors>({});
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
+  /* Strong scroll-restoration fix — resets the window scroll AND
+   * refreshes ScrollTrigger in the correct order, so the section
+   * always opens at its own top edge when navigated to. */
+  useResetScrollOnMount(sectionRef);
+
   const set = <K extends keyof ContactPayload>(key: K, val: ContactPayload[K]) => {
     setValues((p) => ({ ...p, [key]: val }));
     if (errors.name && key === "name") setErrors((p) => ({ ...p, name: undefined }));
@@ -311,41 +409,253 @@ export default function Contacts({
     if (errors.message && key === "message") setErrors((p) => ({ ...p, message: undefined }));
   };
 
-  /* ---------------- Entrance ---------------- */
+  /* ---------------- Animations ---------------- */
 
-  useEffect(() => {
+  useIsoLayoutEffect(() => {
     const root = sectionRef.current;
     if (!root || reduceMotion()) return;
 
+    const mm = gsap.matchMedia();
+
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".ct-header > *",
-        { y: 24, opacity: 0 },
-        {
-          y: 0, opacity: 1, duration: 0.8, stagger: 0.12, ease: "power3.out",
-          scrollTrigger: { trigger: root.querySelector(".ct-header"), start: "top 88%", once: true },
-        }
-      );
+      /* 1 ─ HEADER: tag stamp → letters bounce down → intro words rise */
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: root.querySelector(".ct-header"),
+            start: "top 85%",
+            once: true,
+          },
+        })
+        .fromTo(
+          ".ct-tag",
+          { scale: 2.4, opacity: 0, rotation: 14 },
+          { scale: 1, opacity: 1, rotation: 0, duration: 0.6, ease: "back.out(2.2)" }
+        )
+        .fromTo(
+          ".ct-char",
+          {
+            y: -120,
+            rotation: () => gsap.utils.random(-18, 18),
+            transformOrigin: "50% 100%",
+          },
+          {
+            y: 0,
+            rotation: 0,
+            duration: 1.15,
+            ease: "bounce.out",
+            stagger: { each: 0.035 },
+          },
+          "-=0.2"
+        )
+        // separate opacity tween because bounce ease flickers it
+        .fromTo(
+          ".ct-char",
+          { opacity: 0 },
+          { opacity: 1, duration: 0.25, ease: "none", stagger: { each: 0.035 } },
+          "<"
+        )
+        .fromTo(
+          ".ct-word",
+          { yPercent: 115, opacity: 0 },
+          {
+            yPercent: 0,
+            opacity: 1,
+            duration: 0.75,
+            ease: "power3.out",
+            stagger: 0.035,
+          },
+          "-=0.55"
+        )
+        // polaroid collage + clock sticker pop in
+        .fromTo(
+          ".ct-polaroid",
+          { y: 60, opacity: 0, rotation: -14, scale: 0.9 },
+          {
+            y: 0,
+            opacity: 1,
+            rotation: -4,
+            scale: 1,
+            duration: 1,
+            ease: "back.out(1.6)",
+          },
+          "-=0.6"
+        )
+        .fromTo(
+          ".ct-clock",
+          { scale: 0, rotation: -45 },
+          { scale: 1, rotation: 6, duration: 0.9, ease: "elastic.out(1, 0.45)" },
+          "-=0.55"
+        )
+        .fromTo(
+          ".ct-blob",
+          { scale: 0.8, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 1, ease: "power3.out" },
+          "-=0.9"
+        );
+
+      /* 2 ─ INFO CARDS: staggered drop with alternating tilt */
       gsap.fromTo(
         ".ct-info",
-        { y: 50, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.8, stagger: 0.1, ease: "power3.out",
-          scrollTrigger: { trigger: root.querySelector(".ct-grid"), start: "top 88%", once: true },
+          y: 90,
+          opacity: 0,
+          rotation: (i: number) => [-7, 6, -5, 7, -6][i % 5],
+          scale: 0.92,
+          transformOrigin: "50% 100%",
+        },
+        {
+          y: 0,
+          opacity: 1,
+          rotation: 0,
+          scale: 1,
+          duration: 0.9,
+          ease: "back.out(1.6)",
+          stagger: 0.11,
+          scrollTrigger: {
+            trigger: root.querySelector(".ct-grid"),
+            start: "top 85%",
+            once: true,
+          },
+        }
+      );
+
+      // small contents (icon, lines, cta) fade up after each card lands
+      gsap.fromTo(
+        ".ct-info .ct-icon",
+        { scale: 0, rotation: -30, transformOrigin: "50% 50%" },
+        {
+          scale: 1,
+          rotation: 0,
+          duration: 0.55,
+          ease: "back.out(3)",
+          stagger: 0.11,
+          delay: 0.35,
+          scrollTrigger: {
+            trigger: root.querySelector(".ct-grid"),
+            start: "top 85%",
+            once: true,
+          },
         }
       );
       gsap.fromTo(
-        ".ct-form",
-        { y: 60, opacity: 0 },
+        ".ct-info .ct-line",
+        { y: 18, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 0.95, ease: "power3.out",
-          scrollTrigger: { trigger: root.querySelector(".ct-grid"), start: "top 88%", once: true },
+          y: 0,
+          opacity: 1,
+          duration: 0.5,
+          ease: "power2.out",
+          stagger: { each: 0.06, from: "start" },
+          delay: 0.45,
+          scrollTrigger: {
+            trigger: root.querySelector(".ct-grid"),
+            start: "top 85%",
+            once: true,
+          },
         }
       );
+
+      // team sticker row (bottom of the info column)
+      gsap.fromTo(
+        ".ct-team",
+        { y: 40, opacity: 0, rotation: -8 },
+        {
+          y: 0,
+          opacity: 1,
+          rotation: 0,
+          duration: 0.85,
+          ease: "back.out(1.5)",
+          delay: 0.5,
+          scrollTrigger: {
+            trigger: root.querySelector(".ct-grid"),
+            start: "top 85%",
+            once: true,
+          },
+        }
+      );
+
+      /* 3 ─ FORM: back-sheet slides in, then the form rises and fields stagger */
+      const formTrigger = root.querySelector(".ct-form");
+      gsap.fromTo(
+        ".ct-backsheet",
+        { opacity: 0, x: -20, y: -20 },
+        {
+          opacity: 1,
+          x: 0,
+          y: 0,
+          duration: 0.7,
+          ease: "power3.out",
+          scrollTrigger: { trigger: formTrigger, start: "top 85%", once: true },
+        }
+      );
+      gsap
+        .timeline({
+          scrollTrigger: { trigger: formTrigger, start: "top 85%", once: true },
+        })
+        .fromTo(
+          ".ct-form-card",
+          { y: 70, opacity: 0, rotation: -3, scale: 0.96, transformOrigin: "50% 100%" },
+          {
+            y: 0,
+            opacity: 1,
+            rotation: 0,
+            scale: 1,
+            duration: 1,
+            ease: "back.out(1.4)",
+          }
+        )
+        .fromTo(
+          ".ct-field",
+          { y: 22, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.5,
+            stagger: 0.07,
+            ease: "power2.out",
+          },
+          "-=0.55"
+        )
+        .fromTo(
+          ".ct-submit",
+          { scale: 0.85, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.7, ease: "elastic.out(1, 0.5)" },
+          "-=0.3"
+        );
+
+      /* 4 ─ BACKDROP SHAPES: slow parallax while scrolling */
+      gsap.utils.toArray<HTMLElement>(".ct-parallax", root).forEach((el) => {
+        const depth = Number(el.dataset.depth || 60);
+        gsap.to(el, {
+          y: -depth,
+          ease: "none",
+          scrollTrigger: {
+            trigger: root,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1,
+          },
+        });
+      });
     }, root);
 
-    return () => ctx.revert();
+    // font metrics shift layout → refresh trigger positions
+    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, []);
+
+  /* hover a heading letter → it hops */
+  const hopLetter = (e: React.MouseEvent<HTMLElement>) => {
+    if (reduceMotion()) return;
+    const el = e.target as HTMLElement;
+    if (el.dataset.char !== "1" || gsap.isTweening(el)) return;
+    gsap.to(el, { y: -18, duration: 0.18, ease: "power2.out", yoyo: true, repeat: 1 });
+  };
 
   /* ---------------- Actions ---------------- */
 
@@ -369,8 +679,12 @@ export default function Contacts({
       if (onSubmit) {
         await onSubmit(values);
       } else {
-        const subject = `Enquiry from ${values.name.trim()}${values.topic ? ` — ${values.topic}` : ""}`;
-        window.location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(buildText())}`;
+        const subject = `Enquiry from ${values.name.trim()}${
+          values.topic ? ` — ${values.topic}` : ""
+        }`;
+        window.location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(
+          subject
+        )}&body=${encodeURIComponent(buildText())}`;
       }
       setStatus("sent");
     } catch {
@@ -382,7 +696,11 @@ export default function Contacts({
     const text = values.message.trim()
       ? buildText()
       : "Hello! I'd like to know more about your POS solutions.";
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   };
 
   const reset = () => {
@@ -405,60 +723,94 @@ export default function Contacts({
     >
       <Grain opacity={0.14} />
 
-      {/* collage backdrop */}
+      {/* ============================================================ */}
+      {/* Collage backdrop                                              */}
+      {/* ============================================================ */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute -right-24 top-16 h-56 w-56 rounded-full bg-[#dfe4eb] sm:h-80 sm:w-80" />
-        <div className="absolute -left-16 top-[560px] hidden h-72 w-48 -rotate-[8deg] bg-[#cfe5f6]/70 lg:block" />
+        <div className="ct-parallax absolute -right-24 top-16" data-depth="90">
+          <div className="h-56 w-56 rounded-full bg-[#dfe4eb] sm:h-80 sm:w-80" />
+        </div>
         <div
-          className="absolute bottom-[8%] right-[4%] hidden h-40 w-40 opacity-40 lg:block"
-          style={{ backgroundImage: halftoneDark, backgroundSize: "9px 9px" }}
-        />
+          className="ct-parallax absolute -left-16 top-[560px] hidden lg:block"
+          data-depth="140"
+        >
+          <div className="h-72 w-48 -rotate-[8deg] bg-[#cfe5f6]/70" />
+        </div>
+        <div
+          className="ct-parallax absolute bottom-[8%] right-[4%] hidden lg:block"
+          data-depth="60"
+        >
+          <div
+            className="h-40 w-40 opacity-40"
+            style={{ backgroundImage: halftoneDark, backgroundSize: "9px 9px" }}
+          />
+        </div>
       </div>
 
       <div className="relative mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">
 
         {/* ============================================================ */}
-        {/* HEADER                                                         */}
+        {/* HEADER                                                        */}
         {/* ============================================================ */}
 
         <div className="ct-header grid items-center gap-10 lg:grid-cols-[1.35fr_1fr] lg:gap-12">
           <div>
-            <span
-              className={`${serif.className} relative mb-5 inline-block -rotate-2 bg-[#dfe4eb] px-5 py-1.5 text-[16px] italic sm:mb-6 sm:text-[17px]`}
-              style={{ clipPath: torn }}
-            >
-              Contact us
-            </span>
+            <div className="ct-tag mb-5 sm:mb-6">
+              <span
+                className={`${serif.className} relative inline-block -rotate-2 bg-[#dfe4eb] px-5 py-1.5 text-[16px] italic sm:text-[17px]`}
+                style={{ clipPath: torn }}
+              >
+                Contact us
+              </span>
+            </div>
 
             <h2
+              onMouseOver={hopLetter}
               className={`${serif.className} text-[44px] font-light leading-[0.98] tracking-[-0.02em] sm:text-[72px] lg:text-[96px]`}
             >
-              Let&apos;s talk.
-              <br />
-              <span className="font-normal italic text-[#6b7686]">Right from Kandy.</span>
+              <span className="sr-only">Let&apos;s talk. Right from Kandy.</span>
+              <span aria-hidden="true">
+                <SplitChars text="Let's talk." />
+                <br />
+                <span className="font-normal italic text-[#6b7686]">
+                  <SplitChars text="Right from Kandy." />
+                </span>
+              </span>
             </h2>
 
             <p className="mt-6 max-w-[520px] text-[14.5px] font-light leading-7 text-[#0a1b3d]/70 sm:mt-7 sm:text-[15px]">
-              Questions, a demo, or a custom workflow? Call us, message us on
-              WhatsApp, or fill in the form — we reply during working hours.
+              <span className="sr-only">
+                Questions, a demo, or a custom workflow? Call us, message us on
+                WhatsApp, or fill in the form — we reply during working hours.
+              </span>
+              <span aria-hidden="true">
+                <SplitWords text="Questions, a demo, or a custom workflow? Call us, message us on WhatsApp, or fill in the form — we reply during working hours." />
+              </span>
             </p>
           </div>
 
           {/* polaroid collage */}
           <div className="relative mx-auto h-[300px] w-full max-w-[380px] sm:h-[340px] sm:max-w-[420px]">
-            <div className="absolute right-0 top-4 h-36 w-36 rounded-full bg-[#0a1b3d] sm:h-48 sm:w-48" />
+            <div className="ct-blob absolute right-0 top-4 h-36 w-36 rounded-full bg-[#0a1b3d] sm:h-48 sm:w-48" />
             <div
               className="absolute -left-2 bottom-2 h-28 w-36 opacity-60 sm:h-36 sm:w-44"
               style={{ backgroundImage: halftoneDark, backgroundSize: "8px 8px" }}
             />
-            <div className="group absolute left-3 top-0 w-[230px] -rotate-[4deg] bg-white p-2.5 pb-10 shadow-[0_30px_50px_-25px_rgba(10,27,61,0.55)] sm:left-6 sm:w-[270px] sm:p-3 sm:pb-12">
+            <div className="ct-polaroid group absolute left-3 top-0 w-[230px] -rotate-[4deg] bg-white p-2.5 pb-10 shadow-[0_30px_50px_-25px_rgba(10,27,61,0.55)] sm:left-6 sm:w-[270px] sm:p-3 sm:pb-12">
               <Tape className="-top-3 left-1/2 -translate-x-1/2 rotate-3" />
-              <Photo src={HEADER_IMG} alt="Team working together" className="aspect-[5/4] w-full" tone={0.35} />
-              <p className={`${serif.className} absolute bottom-2.5 left-3.5 text-[17px] italic sm:bottom-3 sm:left-4 sm:text-[20px]`}>
+              <Photo
+                src={HEADER_IMG}
+                alt="Team working together"
+                className="aspect-[5/4] w-full"
+                tone={0.35}
+              />
+              <p
+                className={`${serif.className} absolute bottom-2.5 left-3.5 text-[17px] italic sm:bottom-3 sm:left-4 sm:text-[20px]`}
+              >
                 We&apos;re happy to help
               </p>
             </div>
-            <div className="absolute bottom-0 right-0 z-10 flex h-24 w-24 rotate-6 items-center justify-center bg-[#cfe5f6] p-2 text-center shadow-lg sm:right-2 sm:h-28 sm:w-28">
+            <div className="ct-clock absolute bottom-0 right-0 z-10 flex h-24 w-24 rotate-6 items-center justify-center bg-[#cfe5f6] p-2 text-center shadow-lg sm:right-2 sm:h-28 sm:w-28">
               <p className={`${serif.className} text-[15px] italic leading-tight sm:text-[18px]`}>
                 Mon – Fri
                 <br />
@@ -469,7 +821,7 @@ export default function Contacts({
         </div>
 
         {/* ============================================================ */}
-        {/* INFO + FORM                                                    */}
+        {/* INFO + FORM                                                   */}
         {/* ============================================================ */}
 
         <div className="ct-grid mt-20 grid items-start gap-14 sm:mt-24 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
@@ -500,6 +852,7 @@ export default function Contacts({
               lines={[HOURS]}
               variant="navy"
               tilt="0.8deg"
+              featured
             />
             <InfoCard
               Icon={MessageCircle}
@@ -524,7 +877,7 @@ export default function Contacts({
             />
 
             {/* sticker photo */}
-            <div className="group relative hidden h-24 sm:col-span-2 sm:block" aria-hidden="true">
+            <div className="ct-team group relative hidden h-24 sm:col-span-2 sm:block" aria-hidden="true">
               <Photo
                 src={TEAM_IMG}
                 alt=""
@@ -543,10 +896,10 @@ export default function Contacts({
             {/* back sheet */}
             <span
               aria-hidden="true"
-              className="absolute inset-0 translate-x-2 translate-y-2 bg-[#d3d9e2] sm:translate-x-3 sm:translate-y-3"
+              className="ct-backsheet absolute inset-0 translate-x-2 translate-y-2 bg-[#d3d9e2] sm:translate-x-3 sm:translate-y-3"
             />
 
-            <div className="relative bg-white shadow-[0_50px_90px_-50px_rgba(10,27,61,0.6)]">
+            <div className="ct-form-card relative bg-white shadow-[0_50px_90px_-50px_rgba(10,27,61,0.6)]">
               <Tape className="-top-3 left-8 z-30 -rotate-6" />
 
               {/* navy header strip */}
@@ -555,12 +908,19 @@ export default function Contacts({
                   className="absolute inset-0 opacity-[0.16]"
                   style={{ backgroundImage: halftoneLight, backgroundSize: "9px 9px" }}
                 />
-                <div className="absolute -bottom-20 -right-10 h-48 w-48 rounded-full bg-[#12306a]" aria-hidden="true" />
+                <div
+                  className="absolute -bottom-20 -right-10 h-48 w-48 rounded-full bg-[#12306a]"
+                  aria-hidden="true"
+                />
                 <Grain opacity={0.25} />
-                <h3 className={`${serif.className} relative text-[34px] font-light leading-[1] tracking-[-0.01em] text-white sm:text-[44px]`}>
+                <h3
+                  className={`${serif.className} relative text-[34px] font-light leading-[1] tracking-[-0.01em] text-white sm:text-[44px]`}
+                >
                   Send us a message
                 </h3>
-                <p className={`${serif.className} relative mt-2 text-[18px] italic text-[#cfe5f6] sm:text-[20px]`}>
+                <p
+                  className={`${serif.className} relative mt-2 text-[18px] italic text-[#cfe5f6] sm:text-[20px]`}
+                >
                   Tell us a little about your business.
                 </p>
               </div>
@@ -602,7 +962,12 @@ export default function Contacts({
                 ) : (
                   <form onSubmit={handleSubmit} noValidate className="relative grid gap-6">
                     {/* name */}
-                    <Field id={`${uid}-name`} label="Full name" error={errors.name}>
+                    <Field
+                      id={`${uid}-name`}
+                      label="Full name"
+                      error={errors.name}
+                      className="ct-field"
+                    >
                       <input
                         id={`${uid}-name`}
                         type="text"
@@ -612,12 +977,14 @@ export default function Contacts({
                         placeholder="e.g. Nimal Perera"
                         aria-invalid={!!errors.name}
                         aria-describedby={errors.name ? `${uid}-name-error` : undefined}
-                        className={`${inputCls} ${errors.name ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"}`}
+                        className={`${inputCls} ${
+                          errors.name ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                        }`}
                       />
                     </Field>
 
                     {/* phone + email */}
-                    <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="ct-field grid gap-6 sm:grid-cols-2">
                       <Field id={`${uid}-phone`} label="Phone / WhatsApp">
                         <input
                           id={`${uid}-phone`}
@@ -628,7 +995,9 @@ export default function Contacts({
                           onChange={(e) => set("phone", e.target.value)}
                           placeholder="07X XXX XXXX"
                           aria-invalid={!!errors.contact}
-                          className={`${inputCls} ${errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"}`}
+                          className={`${inputCls} ${
+                            errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                          }`}
                         />
                       </Field>
                       <Field id={`${uid}-email`} label="Email">
@@ -641,19 +1010,25 @@ export default function Contacts({
                           placeholder="you@business.com"
                           aria-invalid={!!errors.contact}
                           aria-describedby={errors.contact ? `${uid}-contact-error` : undefined}
-                          className={`${inputCls} ${errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"}`}
+                          className={`${inputCls} ${
+                            errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                          }`}
                         />
                       </Field>
                     </div>
                     {errors.contact && (
-                      <p id={`${uid}-contact-error`} role="alert" className="-mt-3 flex items-start gap-1.5 text-[12.5px] text-[#9b2c2c]">
+                      <p
+                        id={`${uid}-contact-error`}
+                        role="alert"
+                        className="-mt-3 flex items-start gap-1.5 text-[12.5px] text-[#9b2c2c]"
+                      >
                         <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         {errors.contact}
                       </p>
                     )}
 
                     {/* topic chips */}
-                    <div>
+                    <div className="ct-field">
                       <p className={`${serif.className} mb-2.5 text-[18px] italic leading-none`}>
                         I&apos;m interested in
                         <span className="ml-2 text-[14px] not-italic text-[#6b7686]">optional</span>
@@ -681,7 +1056,12 @@ export default function Contacts({
                     </div>
 
                     {/* message */}
-                    <Field id={`${uid}-message`} label="Your message" error={errors.message}>
+                    <Field
+                      id={`${uid}-message`}
+                      label="Your message"
+                      error={errors.message}
+                      className="ct-field"
+                    >
                       <textarea
                         id={`${uid}-message`}
                         rows={5}
@@ -691,7 +1071,9 @@ export default function Contacts({
                         placeholder="Tell us about your shop, how many outlets you run, or what you'd like to customize…"
                         aria-invalid={!!errors.message}
                         aria-describedby={errors.message ? `${uid}-message-error` : undefined}
-                        className={`${inputCls} resize-none leading-7 ${errors.message ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"}`}
+                        className={`${inputCls} resize-none leading-7 ${
+                          errors.message ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                        }`}
                       />
                       <p className="mt-1 text-right text-[11.5px] font-light text-[#6b7686]">
                         {values.message.length}/600
@@ -699,8 +1081,11 @@ export default function Contacts({
                     </Field>
 
                     {/* preferred contact */}
-                    <div role="radiogroup" aria-labelledby={`${uid}-pref`}>
-                      <p id={`${uid}-pref`} className={`${serif.className} mb-2.5 text-[18px] italic leading-none`}>
+                    <div className="ct-field" role="radiogroup" aria-labelledby={`${uid}-pref`}>
+                      <p
+                        id={`${uid}-pref`}
+                        className={`${serif.className} mb-2.5 text-[18px] italic leading-none`}
+                      >
                         Best way to reach you
                       </p>
                       <div className="grid grid-cols-3 gap-2">
@@ -730,7 +1115,7 @@ export default function Contacts({
                     </div>
 
                     {/* actions */}
-                    <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
+                    <div className="ct-submit flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
                       <button
                         type="submit"
                         disabled={status === "sending"}
@@ -761,7 +1146,8 @@ export default function Contacts({
                     {status === "error" && (
                       <p role="alert" className="flex items-start gap-2 text-[13px] text-[#9b2c2c]">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                        Something went wrong while sending. Please try again, or call us on {PHONE_DISPLAY}.
+                        Something went wrong while sending. Please try again, or call us on{" "}
+                        {PHONE_DISPLAY}.
                       </p>
                     )}
 
