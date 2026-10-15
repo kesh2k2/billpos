@@ -16,18 +16,17 @@
  *   Cormorant Garamond + Jost · torn tags · halftone · washi tape
  *   grain · letter-bounce headings · parallax backdrop
  *
- * Form fields (comprehensive):
- *   Full name · Business name · Phone · Email
- *   Business type · Team size · Locations count
- *   Preferred date · Time slot
- *   Preferred contact method
- *   What to focus on
- *   Anything we should prepare? (optional)
+ * Validation (matched to Contacts):
+ *   • Full name  — first AND last name required (2+ words)
+ *                  Auto-capitalizes first letter of each word
+ *   • Phone      — exactly 10 digits, must start with 0
+ *   • Email      — lowercase first letter + @gmail.com or @yahoo.com
+ *                  Auto-lowercases the first character
+ *   • Live errors appear as the user types
  *
  * Scroll-restoration fix:
  *   Uses the shared `useResetScrollOnMount` hook from
- *   `@/lib/use-reset-scroll-on-mount` so the section always opens
- *   at its own top edge when navigated to.
+ *   `@/lib/use-reset-scroll-on-mount`.
  * ============================================================ */
 
 import {
@@ -277,7 +276,9 @@ export type DemoPayload = {
   notes: string;
 };
 
-type Errors = Partial<Record<"name" | "contact" | "date" | "focus", string>>;
+type Errors = Partial<
+  Record<"name" | "phone" | "email" | "contact" | "date" | "focus", string>
+>;
 
 const emptyForm: DemoPayload = {
   name: "",
@@ -297,19 +298,88 @@ const emptyForm: DemoPayload = {
 const inputCls =
   "w-full border-0 border-b bg-[#f1f4f8] px-3.5 py-3 text-[15px] font-light text-[#0a1b3d] outline-none transition placeholder:text-[#6b7686]/70 focus:border-[#0a1b3d] focus:bg-[#cfe5f6]/50";
 
+/* ------------------------------------------------------------------ */
+/* Auto-format helpers                                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Capitalize the first letter of every word.
+ *   "john wick"   → "John Wick"
+ *   "JOHN wick"   → "JOHN Wick"
+ *   "john  wick"  → "John  Wick" (preserves extra spaces)
+ */
+function capitalizeName(value: string): string {
+  return value.replace(/(^|\s)(\S)/g, (_, sep, ch) => sep + ch.toUpperCase());
+}
+
+/**
+ * Lowercase the FIRST character of the string only.
+ * Preserves the rest exactly as typed.
+ *   "John@gmail.com"  → "john@gmail.com"
+ *   "JOHN@gmail.com"  → "jOHN@gmail.com"
+ */
+function lowercaseFirst(value: string): string {
+  if (value.length === 0) return value;
+  return value.charAt(0).toLowerCase() + value.slice(1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Validation rules                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Phone: exactly 10 digits, first digit must be 0.
+ *   ✓ 0745566987   ✗ 774455968 (no leading 0)
+ *                  ✗ 077456547 (only 9 digits)
+ *                  ✗ 07586485964 (11 digits)
+ */
+const PHONE_RE = /^0\d{9}$/;
+
+/**
+ * Email:
+ *   • First character must be a lowercase letter (a–z)
+ *   • Domain must be exactly @gmail.com or @yahoo.com
+ */
+const EMAIL_RE = /^[a-z][a-zA-Z0-9._-]*@(gmail\.com|yahoo\.com)$/;
+
 const validate = (v: DemoPayload): Errors => {
   const errs: Errors = {};
-  if (v.name.trim().length < 2) errs.name = "Please tell us your name.";
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim());
-  const phoneOk = v.phone.replace(/\D/g, "").length >= 9;
-  if (!emailOk && !phoneOk)
-    errs.contact = "Add a valid phone number or email so we can confirm your demo.";
-  else if (v.email.trim() && !emailOk) errs.contact = "That email doesn't look right.";
+  /* ── Full name — first + last name required ────────────── */
+  const nameParts = v.name.trim().split(/\s+/).filter(Boolean);
+  if (nameParts.length < 2 || nameParts.some((p) => p.length < 2)) {
+    errs.name = "Please enter your full name (first and last name).";
+  }
 
+  /* ── Contact methods ──────────────────────────────────── */
+  const phoneTrim = v.phone.trim();
+  const emailTrim = v.email.trim();
+
+  const phoneDigits = phoneTrim.replace(/\D/g, "");
+  const phoneOk = PHONE_RE.test(phoneDigits);
+  const emailOk = EMAIL_RE.test(emailTrim);
+
+  if (phoneTrim.length === 0 && emailTrim.length === 0) {
+    errs.contact = "Add a phone number or email so we can confirm your demo.";
+  }
+
+  if (phoneTrim.length > 0 && !phoneOk) {
+    errs.phone =
+      "Enter a 10-digit mobile number starting with 0 (e.g. 0745566987).";
+  }
+
+  if (emailTrim.length > 0 && !emailOk) {
+    errs.email =
+      "Email must start with a lowercase letter and end with @gmail.com or @yahoo.com.";
+  }
+
+  /* ── Date ─────────────────────────────────────────────── */
   if (!v.date) errs.date = "Pick a preferred date.";
+
+  /* ── Focus ────────────────────────────────────────────── */
   if (v.focus.trim().length < 10)
     errs.focus = "Tell us what you'd like to focus on (at least 10 characters).";
+
   return errs;
 };
 
@@ -384,21 +454,75 @@ export default function RequestDemo({
     "idle"
   );
 
-  /* Strong scroll-restoration fix — resets the window scroll AND
-   * refreshes ScrollTrigger in the correct order, so the section
-   * always opens at its own top edge when navigated to. */
   useResetScrollOnMount(sectionRef);
 
+  /* --------------------------------------------------------------
+   * Live validation + auto-formatting
+   *   • Name  → capitalizes first letter of each word as you type
+   *   • Email → lowercases the first character as you type
+   *   • Re-validate the whole form with the new values
+   *   • Update ONLY the error slot for the field being edited
+   *   • Clear cross-field "contact" error as soon as either phone
+   *     or email has content
+   * ------------------------------------------------------------ */
   const set = <K extends keyof DemoPayload>(key: K, val: DemoPayload[K]) => {
-    setValues((p) => ({ ...p, [key]: val }));
-    if (errors.name && key === "name")
-      setErrors((p) => ({ ...p, name: undefined }));
-    if (errors.contact && (key === "phone" || key === "email"))
-      setErrors((p) => ({ ...p, contact: undefined }));
-    if (errors.date && key === "date")
-      setErrors((p) => ({ ...p, date: undefined }));
-    if (errors.focus && key === "focus")
-      setErrors((p) => ({ ...p, focus: undefined }));
+    let formatted: DemoPayload[K] = val;
+
+    if (key === "name" && typeof val === "string") {
+      formatted = capitalizeName(val) as DemoPayload[K];
+    }
+
+    if (key === "email" && typeof val === "string") {
+      formatted = lowercaseFirst(val) as DemoPayload[K];
+    }
+
+    const next: DemoPayload = { ...values, [key]: formatted };
+    setValues(next);
+
+    const allErrs = validate(next);
+
+    setErrors((prev) => {
+      const merged: Errors = { ...prev };
+
+      if (key === "name") {
+        if (allErrs.name) merged.name = allErrs.name;
+        else delete merged.name;
+      }
+
+      if (key === "phone") {
+        if (next.phone.trim().length > 0 && allErrs.phone) {
+          merged.phone = allErrs.phone;
+        } else {
+          delete merged.phone;
+        }
+        if (next.phone.trim().length > 0 && merged.contact) {
+          delete merged.contact;
+        }
+      }
+
+      if (key === "email") {
+        if (next.email.trim().length > 0 && allErrs.email) {
+          merged.email = allErrs.email;
+        } else {
+          delete merged.email;
+        }
+        if (next.email.trim().length > 0 && merged.contact) {
+          delete merged.contact;
+        }
+      }
+
+      if (key === "date") {
+        if (allErrs.date) merged.date = allErrs.date;
+        else delete merged.date;
+      }
+
+      if (key === "focus") {
+        if (allErrs.focus) merged.focus = allErrs.focus;
+        else delete merged.focus;
+      }
+
+      return merged;
+    });
   };
 
   /* ---------------- Animations ---------------- */
@@ -838,7 +962,6 @@ export default function RequestDemo({
                   key={s.n}
                   className="dm-step relative pb-9 last:pb-0"
                 >
-                  {/* node on the left rail */}
                   <span
                     className="absolute -left-[33px] top-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-[#0a1b3d] sm:-left-[41px]"
                     aria-hidden="true"
@@ -872,7 +995,6 @@ export default function RequestDemo({
               ))}
             </ol>
 
-            {/* small tag strip */}
             <div className="mt-10 hidden items-center gap-3 lg:flex">
               <span className="h-px w-10 bg-[#0a1b3d]/20" />
               <span className="font-mono text-[10px] tracking-[0.28em] text-[#6b7686]">
@@ -891,7 +1013,6 @@ export default function RequestDemo({
             <div className="dm-form-card relative bg-white shadow-[0_50px_90px_-50px_rgba(10,27,61,0.6)]">
               <Tape className="-top-3 left-8 z-30 -rotate-6" />
 
-              {/* navy header strip */}
               <div className="relative overflow-hidden bg-[#0a1b3d] px-5 py-8 sm:px-8 sm:py-10">
                 <div
                   className="absolute inset-0 opacity-[0.16]"
@@ -988,7 +1109,11 @@ export default function RequestDemo({
                       </div>
 
                       <div className="grid gap-6 sm:grid-cols-2">
-                        <Field id={`${uid}-phone`} label="Phone / WhatsApp">
+                        <Field
+                          id={`${uid}-phone`}
+                          label="Phone / WhatsApp"
+                          error={errors.phone}
+                        >
                           <input
                             id={`${uid}-phone`}
                             type="tel"
@@ -997,27 +1122,46 @@ export default function RequestDemo({
                             value={values.phone}
                             onChange={(e) => set("phone", e.target.value)}
                             placeholder="07X XXX XXXX"
-                            aria-invalid={!!errors.contact}
+                            aria-invalid={!!errors.phone || !!errors.contact}
+                            aria-describedby={
+                              errors.phone
+                                ? `${uid}-phone-error`
+                                : errors.contact
+                                  ? `${uid}-contact-error`
+                                  : undefined
+                            }
                             className={`${inputCls} ${
-                              errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                              errors.phone || errors.contact
+                                ? "border-[#9b2c2c]"
+                                : "border-[#0a1b3d]/30"
                             }`}
                           />
                         </Field>
 
-                        <Field id={`${uid}-email`} label="Email">
+                        <Field
+                          id={`${uid}-email`}
+                          label="Email"
+                          error={errors.email}
+                        >
                           <input
                             id={`${uid}-email`}
                             type="email"
                             autoComplete="email"
                             value={values.email}
                             onChange={(e) => set("email", e.target.value)}
-                            placeholder="you@business.com"
-                            aria-invalid={!!errors.contact}
+                            placeholder="you@gmail.com"
+                            aria-invalid={!!errors.email || !!errors.contact}
                             aria-describedby={
-                              errors.contact ? `${uid}-contact-error` : undefined
+                              errors.email
+                                ? `${uid}-email-error`
+                                : errors.contact
+                                  ? `${uid}-contact-error`
+                                  : undefined
                             }
                             className={`${inputCls} ${
-                              errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                              errors.email || errors.contact
+                                ? "border-[#9b2c2c]"
+                                : "border-[#0a1b3d]/30"
                             }`}
                           />
                         </Field>
@@ -1038,7 +1182,6 @@ export default function RequestDemo({
                     <fieldset className="dm-field space-y-6 border-t border-[#0a1b3d]/10 pt-6">
                       <legend className="sr-only">Your business</legend>
 
-                      {/* Business type chips */}
                       <div>
                         <p
                           className={`${serif.className} mb-2.5 text-[18px] italic leading-none`}
@@ -1070,7 +1213,6 @@ export default function RequestDemo({
                         </div>
                       </div>
 
-                      {/* Team size */}
                       <div role="radiogroup" aria-labelledby={`${uid}-team`}>
                         <p
                           id={`${uid}-team`}
@@ -1105,7 +1247,6 @@ export default function RequestDemo({
                         </div>
                       </div>
 
-                      {/* Locations */}
                       <div role="radiogroup" aria-labelledby={`${uid}-loc`}>
                         <p
                           id={`${uid}-loc`}
@@ -1195,7 +1336,6 @@ export default function RequestDemo({
                         </div>
                       </div>
 
-                      {/* Preferred contact */}
                       <div role="radiogroup" aria-labelledby={`${uid}-pref`}>
                         <p
                           id={`${uid}-pref`}
