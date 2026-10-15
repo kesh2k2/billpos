@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Sparkles,
+  Cpu,
 } from "lucide-react";
 
 gsap.registerPlugin(SplitText);
@@ -24,6 +25,7 @@ const navItems = [
   { label: "Home", href: "/", icon: Home },
   { label: "Solutions", href: "/solutions", icon: LayoutGrid },
   { label: "Packages", href: "/packages", icon: Package },
+  { label: "POS Hardware", href: "/hardware", icon: Cpu },
   { label: "About Us", href: "/about", icon: Info },
   { label: "Contact", href: "/contact", icon: Mail },
 ];
@@ -396,7 +398,7 @@ export default function Navbar() {
           </Link>
 
           {/* DESKTOP NAVIGATION */}
-          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
+          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-0.5 lg:flex">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -408,9 +410,9 @@ export default function Navbar() {
                   aria-current={active ? "page" : undefined}
                   className={`
                     nav-link group relative flex items-center gap-2
-                    rounded-xl px-3.5 py-2.5 text-[13px]
+                    whitespace-nowrap rounded-xl px-2.5 py-2.5 text-[12.5px]
                     font-medium tracking-wide transition-all duration-300
-                    xl:px-4 xl:text-[14px]
+                    xl:px-3.5 xl:text-[13.5px]
                     ${active ? theme.linkActive : theme.linkInactive}
                   `}
                 >
@@ -418,12 +420,12 @@ export default function Navbar() {
                     size={15}
                     strokeWidth={1.8}
                     className={`
-                      transition-colors duration-300
+                      shrink-0 transition-colors duration-300
                       ${active ? theme.linkIconActive : theme.linkIconInactive}
                     `}
                   />
 
-                  <span>{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
 
                   <span
                     className={`
@@ -458,7 +460,9 @@ export default function Navbar() {
                 hover:shadow-[0_8px_24px_rgba(79,70,229,0.25)]
               "
             >
-              <span className="relative z-10">Request Demo</span>
+              <span className="relative z-10 whitespace-nowrap">
+                Request Demo
+              </span>
 
               <ArrowUpRight
                 size={15}
@@ -515,7 +519,7 @@ export default function Navbar() {
             transition-all duration-300 ease-out sm:px-5 lg:hidden
             ${
               mobileMenuOpen
-                ? "pointer-events-auto max-h-[600px] translate-y-0 pt-2 opacity-100"
+                ? "pointer-events-auto max-h-[700px] translate-y-0 pt-2 opacity-100"
                 : "pointer-events-none max-h-0 -translate-y-2 opacity-0"
             }
           `}
@@ -603,7 +607,7 @@ export default function Navbar() {
                       <div>
                         <span
                           className={`
-                            block text-[13px] font-medium
+                            block whitespace-nowrap text-[13px] font-medium
                             ${
                               active
                                 ? theme.mobileLabelActive
