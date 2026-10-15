@@ -75,7 +75,7 @@ const sans = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 
 const PHONE_DISPLAY = "077 291 3369";
 const PHONE_TEL = "+94772913369";
-const WHATSAPP_NUMBER = "94772913369";
+const WHATSAPP_NUMBER = "+94706833644";
 const EMAIL = "hello@qdeskai.com";
 const HOURS = "Mon – Fri: 10am to 5pm";
 const ADDRESS_LINES = ["No: 15/1/8,", "Nanuoya,", "Kiribathkumbura,", "Kandy"];

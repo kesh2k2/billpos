@@ -57,7 +57,7 @@ const sans = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 /* ------------------------------------------------------------------ */
 
 const QUOTE_EMAIL = "hello@qdeskai.com";
-const WHATSAPP_NUMBER = "94772913369"; // international format, no + or spaces
+const WHATSAPP_NUMBER = "94706833644"; // international format, no + or spaces
 
 /* ------------------------------------------------------------------ */
 /* Texture helpers                                                    */

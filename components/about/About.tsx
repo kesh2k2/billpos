@@ -209,8 +209,8 @@ function SplitWords({ text }: { text: string }) {
 /* Content (taken from qdeskai.com)                                   */
 /* ------------------------------------------------------------------ */
 
-const PHONE_DISPLAY = "077 291 3369";
-const PHONE_TEL = "tel:0772913369";
+const PHONE_DISPLAY = "0706833644";
+const PHONE_TEL = "tel:0706833644";
 const EMAIL = "hello@qdeskai.com";
 
 const IMG_TEAM =
