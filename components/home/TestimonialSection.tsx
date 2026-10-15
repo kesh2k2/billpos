@@ -266,7 +266,7 @@ export default function TestimonialSection() {
                 </a>
 
                 <a
-                  href="https://wa.me/947XXXXXXXX"
+                  href="https://wa.me/94706833644"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="

@@ -103,17 +103,17 @@ function MailIcon({ size = 16, className = "" }: IconProps) {
 const socialLinks = [
   {
     label: "Facebook",
-    href: "https://facebook.com",
+    href: "https://www.facebook.com/share/1Dn6WNgyPn/",
     icon: FacebookIcon,
   },
   {
     label: "LinkedIn",
-    href: "https://linkedin.com",
+    href: "https://www.linkedin.com/company/qdesk-ai/",
     icon: LinkedinIcon,
   },
   {
     label: "Instagram",
-    href: "https://instagram.com",
+    href: "https://www.instagram.com/qdeskai?rpxt=MTE5OXBwcHlzNGJmMA==",
     icon: InstagramIcon,
   },
   {
@@ -160,8 +160,8 @@ const contactItems = [
     icon: Mail,
   },
   {
-    label: "+94 77 291 3369",
-    href: "tel:+94772913369",
+    label: "0706833644",
+    href: "tel:0706833644",
     icon: Phone,
   },
   {
