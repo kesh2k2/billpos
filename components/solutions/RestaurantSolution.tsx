@@ -18,7 +18,6 @@ import {
   Sparkles,
   Check,
   TrendingUp,
-  Calendar,
   Send,
   Image as ImageIcon,
   Calculator,
@@ -61,7 +60,6 @@ const steps = [
   { id: "overview", label: "Overview" },
   { id: "features", label: "Features" },
   { id: "gallery", label: "Gallery" },
-  { id: "trial", label: "Request Trial" },
   { id: "demo", label: "Request Demo" },
 ];
 
@@ -69,7 +67,6 @@ const previewItems = [
   { Icon: Compass, label: "Overview", note: "The big picture", offset: "lg:-translate-y-3", tint: "bg-orange-50 text-orange-700" },
   { Icon: Zap, label: "Features", note: "17 capabilities", offset: "lg:translate-y-1", tint: "bg-amber-50 text-amber-700" },
   { Icon: ImageIcon, label: "Gallery", note: "Live kitchen screens", offset: "lg:-translate-y-4", tint: "bg-rose-50 text-rose-700" },
-  { Icon: Calendar, label: "Free Trial", note: "30 days, no card", offset: "lg:translate-y-1", tint: "bg-emerald-50 text-emerald-700" },
   { Icon: Send, label: "Live Demo", note: "Book a walkthrough", offset: "lg:-translate-y-2", tint: "bg-sky-50 text-sky-700" },
 ];
 
@@ -138,6 +135,7 @@ const rightImages = [
 export default function RestaurantSolution() {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const shouldScrollRef = useRef(false);
   const [stepperVisible, setStepperVisible] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [openAccordion, setOpenAccordion] = useState(0);
@@ -264,10 +262,9 @@ export default function RestaurantSolution() {
       { from: { x: 60, opacity: 0 }, ease: "power3.out" },
       { from: { scale: 0.9, rotation: -3, opacity: 0 }, ease: "back.out(1.4)" },
       { from: { y: 60, opacity: 0 }, ease: "power3.out" },
-      { from: { scale: 0.85, opacity: 0 }, ease: "elastic.out(1, 0.7)" },
     ];
 
-    const cfg = anims[activeStep];
+    const cfg = anims[activeStep] ?? anims[0];
 
     gsap.fromTo(el, cfg.from, { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, duration: 0.75, ease: cfg.ease });
 
@@ -284,6 +281,22 @@ export default function RestaurantSolution() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStep, stepperVisible]);
+
+  useEffect(() => {
+    if (!shouldScrollRef.current) return;
+    shouldScrollRef.current = false;
+
+    const el = contentRef.current;
+    if (!el) return;
+
+    const t = setTimeout(() => {
+      const top = el.getBoundingClientRect().top + window.scrollY - 110;
+      window.scrollTo({ top, behavior: "smooth" });
+    }, 60);
+
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStep]);
 
   useEffect(() => {
     if (lightbox === null) return;
@@ -303,8 +316,8 @@ export default function RestaurantSolution() {
   return (
     <section
       ref={sectionRef}
-      /* FIX: minimal top padding to close the gap with RetailSolution */
-      className={`${sans.className} relative w-full overflow-hidden bg-white pt-2 pb-12 sm:pt-4 sm:pb-16 lg:pt-4 lg:pb-24`}
+      id="restaurants"
+      className={`${sans.className} relative w-full scroll-mt-24 overflow-hidden bg-white pt-2 pb-12 sm:pt-4 sm:pb-16 lg:pt-4 lg:pb-24`}
     >
       <style>{`
         @keyframes rs-spin { to { transform: rotate(360deg); } }
@@ -432,7 +445,7 @@ export default function RestaurantSolution() {
                     <span className="h-px w-10 bg-slate-200" />
                   </div>
 
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     {previewItems.map(({ Icon, label, note, offset, tint }, i) => (
                       <div
                         key={label}
@@ -487,7 +500,18 @@ export default function RestaurantSolution() {
                       const isPast = activeStep > i;
 
                       return (
-                        <button key={step.id} type="button" onClick={() => setActiveStep(i)} className="group flex flex-1 flex-col items-center text-center">
+                        <button
+                          key={step.id}
+                          type="button"
+                          onClick={() => {
+                            if (step.id === "demo") {
+                              window.location.href = "/demo";
+                            } else {
+                              setActiveStep(i);
+                            }
+                          }}
+                          className="group flex flex-1 flex-col items-center text-center"
+                        >
                           <span className={`rs-step-circle relative flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-300 sm:h-7 sm:w-7 ${isActive ? "border-orange-600 bg-orange-600 shadow-[0_0_0_6px_rgba(234,88,12,0.12)]" : isPast ? "border-orange-500 bg-orange-500" : "border-slate-200 bg-white group-hover:border-orange-300"}`}>
                             {isPast || isActive ? <Check className="h-3 w-3 text-white sm:h-3.5 sm:w-3.5" strokeWidth={3} /> : <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />}
                             {isActive && <span className="absolute inset-[-4px] animate-ping rounded-full border border-orange-400/50" />}
@@ -528,10 +552,17 @@ export default function RestaurantSolution() {
                               Request a Demo
                               <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                             </Link>
-                            <Link href="/solutions#restaurant-features" className="group inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[12px] font-medium text-slate-700 transition hover:border-orange-300">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                shouldScrollRef.current = true;
+                                setActiveStep(1);
+                              }}
+                              className="group inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[12px] font-medium text-slate-700 transition hover:border-orange-300"
+                            >
                               See all features
                               <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-                            </Link>
+                            </button>
                           </div>
                         </div>
 
@@ -650,95 +681,6 @@ export default function RestaurantSolution() {
                       <p className="mt-5 text-center text-[11px] text-slate-400">Click any screen to view the full-size preview</p>
                     </div>
                   )}
-
-                  {activeStep === 3 && (
-                    <div>
-                      <SectionHeader index="04" title="Request Trial" icon={<Calendar className="h-3.5 w-3.5 text-orange-600" />} />
-
-                      <div className="mx-auto max-w-[640px] rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.35)] sm:p-8">
-                        <div className="flex items-start gap-3">
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
-                            <Calendar className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <p className="text-[13.5px] font-semibold text-slate-800 sm:text-[14px]">Start your 30-day free trial</p>
-                            <p className="mt-1 text-[11px] leading-5 text-slate-400 sm:text-[11.5px]">No credit card required. Full access to every feature. Cancel anytime.</p>
-                          </div>
-                        </div>
-
-                        <form className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
-                          <Field label="Full name" placeholder="Your name" />
-                          <Field label="Restaurant name" placeholder="Restaurant name" />
-                          <Field label="Email" placeholder="you@example.com" type="email" />
-                          <Field label="Phone" placeholder="+94 7X XXX XXXX" type="tel" />
-                          <div className="sm:col-span-2">
-                            <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Restaurant type</label>
-                            <select className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] text-slate-700 outline-none transition focus:border-orange-400">
-                              <option>Café</option>
-                              <option>Fine dining</option>
-                              <option>Quick-service / Fast food</option>
-                              <option>Bar &amp; restaurant</option>
-                              <option>Multi-outlet chain</option>
-                              <option>Other</option>
-                            </select>
-                          </div>
-                          <button type="submit" className="group mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-5 py-3 text-[12.5px] font-medium text-white shadow-[0_12px_28px_-14px_rgba(234,88,12,0.75)] transition hover:bg-orange-700 sm:col-span-2">
-                            Start free trial
-                            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeStep === 4 && (
-                    <div>
-                      <SectionHeader index="05" title="Request Demo" icon={<Send className="h-3.5 w-3.5 text-orange-600" />} />
-
-                      <div className="mx-auto grid max-w-[820px] gap-4 lg:grid-cols-[1.05fr_1fr] lg:gap-5">
-                        <div className="rounded-3xl border border-slate-200 bg-white/70 p-5 backdrop-blur sm:p-6">
-                          <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
-                            <Send className="h-4 w-4" />
-                          </span>
-                          <p className="text-[14px] font-semibold text-slate-800 sm:text-[15px]">See BillPOS in action</p>
-                          <p className="mt-2 text-[11.5px] leading-6 text-slate-500 sm:text-[12px]">A 30-minute walkthrough tailored to your restaurant&apos;s workflow. See KOT, BOT, table management, and live kitchen screens with your own scenarios.</p>
-
-                          <ul className="mt-5 space-y-2.5">
-                            {["Personalised demo", "Q&A with a product specialist", "Setup roadmap for your restaurant"].map((item) => (
-                              <li key={item} className="flex items-center gap-2.5 text-[11.5px] text-slate-600 sm:text-[12px]">
-                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-50 text-orange-700">
-                                  <Check className="h-3 w-3" strokeWidth={3} />
-                                </span>
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-
-                          <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50/50 p-3.5">
-                            <p className="text-[10.5px] leading-5 text-slate-500 sm:text-[11px]">
-                              Preferred slot today: <span className="font-semibold text-orange-700">3:00 PM – 5:00 PM</span> (after lunch rush)
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.35)] sm:p-6">
-                          <form className="grid gap-3" onSubmit={(e) => e.preventDefault()}>
-                            <Field label="Full name" placeholder="Your name" />
-                            <Field label="Email" placeholder="you@example.com" type="email" />
-                            <Field label="Preferred date" placeholder="YYYY-MM-DD" type="date" />
-                            <div>
-                              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Notes</label>
-                              <textarea rows={3} placeholder="Tell us about your restaurant…" className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] text-slate-700 outline-none transition focus:border-orange-400" />
-                            </div>
-                            <button type="submit" className="group mt-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#111] px-5 py-3 text-[12.5px] font-medium text-white transition hover:bg-orange-600">
-                              Book my demo
-                              <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -787,15 +729,6 @@ function SectionHeader({ index, title, icon }: { index: string; title: string; i
         <h3 className={`${serif.className} mt-1 text-[22px] leading-none tracking-[-0.02em] text-[#111] sm:text-[32px]`}>{title}</h3>
       </div>
       <span className="hidden h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white sm:flex">{icon}</span>
-    </div>
-  );
-}
-
-function Field({ label, placeholder, type = "text" }: { label: string; placeholder?: string; type?: string }) {
-  return (
-    <div>
-      <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</label>
-      <input type={type} placeholder={placeholder} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] text-slate-700 outline-none transition focus:border-orange-400" />
     </div>
   );
 }

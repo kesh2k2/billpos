@@ -384,7 +384,8 @@ export default function MultiSolutionOverview() {
   return (
     <section
       ref={sectionRef}
-      className={`${sans.className} relative w-full overflow-hidden bg-[#f1f4f8] py-16 text-[#0a1b3d] sm:py-24 lg:py-28`}
+      id="multi-solutions"
+      className={`${sans.className} relative w-full scroll-mt-24 overflow-hidden bg-[#f1f4f8] py-16 text-[#0a1b3d] sm:py-24 lg:py-28`}
     >
       <Grain opacity={0.14} />
 
@@ -691,6 +692,8 @@ export default function MultiSolutionOverview() {
                     ))}
                   </div>
 
+                  {/* CTA — "Explore Fashion / Salon / SMEs" button removed.
+                   *      Only the "Request a demo" button remains. */}
                   <div className="ms-detail-block mt-7 flex flex-wrap items-center gap-3 sm:mt-8">
                     <Link
                       href="/demo"
@@ -698,13 +701,6 @@ export default function MultiSolutionOverview() {
                     >
                       Request a demo
                       <ArrowUpRight className="h-4 w-4 transition group-hover/btn:-translate-y-0.5 group-hover/btn:translate-x-0.5" />
-                    </Link>
-                    <Link
-                      href={`/solutions#${active.key}`}
-                      className="group/btn inline-flex items-center gap-2 rounded-full border border-[#0a1b3d]/30 bg-white px-6 py-3 text-[13.5px] font-normal transition hover:border-[#0a1b3d]"
-                    >
-                      {active.cta}
-                      <ArrowRight className="h-4 w-4 transition group-hover/btn:translate-x-0.5" />
                     </Link>
                   </div>
                 </div>
