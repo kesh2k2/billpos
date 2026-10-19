@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -37,6 +36,33 @@ const serif = Instrument_Serif({
 });
 
 const sans = Inter({ subsets: ["latin"] });
+
+/* ------------------------------------------------------------------ */
+/* Scroll helpers — used by the "Explore" CTA                         */
+/* ------------------------------------------------------------------ */
+
+function scrollToId(id: string) {
+  if (typeof document === "undefined") return;
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+/**
+ * Map each industry to the DOM id of the component it should scroll to.
+ *   retail       → RetailSolution.tsx      (#retail)
+ *   restaurants  → RestaurantSolution.tsx  (#restaurants)
+ *   fashion      → MultiSolutionOverview   (#multi-solutions)
+ *   salons       → MultiSolutionOverview   (#multi-solutions)
+ *   smes         → MultiSolutionOverview   (#multi-solutions)
+ */
+function getExploreTarget(industryId: string): string {
+  if (industryId === "fashion" || industryId === "salons" || industryId === "smes") {
+    return "multi-solutions";
+  }
+  return industryId;
+}
 
 /* ------------------------------------------------------------------ */
 /* Data                                                               */
@@ -296,7 +322,7 @@ export default function SolutionSelector() {
     );
   }, []);
 
-  
+
 
   useEffect(() => {
     const refreshTimer = window.setTimeout(() => {
@@ -691,6 +717,7 @@ export default function SolutionSelector() {
 
   return (
     <section
+      id="SolutionSelecter"
       ref={sectionRef}
       className={`${sans.className} selector-section relative overflow-hidden bg-[#f8fafc] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24`}
     >
@@ -1196,15 +1223,22 @@ function DetailsPanel({
                 mobile ? "" : "mt-8"
               }`}
             >
-              <Link
-                href={`/solutions#${active.id}`}
-                prefetch={false}
+              {/* ✅ FIXED: routes each industry to the right component
+               *   retail      → #retail           (RetailSolution)
+               *   restaurants → #restaurants      (RestaurantSolution)
+               *   fashion     → #multi-solutions  (MultiSolutionOverview)
+               *   salons      → #multi-solutions  (MultiSolutionOverview)
+               *   smes        → #multi-solutions  (MultiSolutionOverview)
+               */}
+              <button
+                type="button"
+                onClick={() => scrollToId(getExploreTarget(active.id))}
                 className="group inline-flex items-center gap-2 rounded-full bg-[#111] px-5 py-2.5 text-[12px] font-medium text-white transition hover:bg-blue-700"
               >
                 Explore {active.name}
 
                 <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              </Link>
+              </button>
 
               <Link
                 href="/demo"

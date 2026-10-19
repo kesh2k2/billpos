@@ -66,6 +66,18 @@ function Star4({ className = "" }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Scroll helper — used by the "Explore Solutions" CTA              */
+/* ------------------------------------------------------------------ */
+
+function scrollToId(id) {
+  if (typeof document === "undefined") return;
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Hero                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -232,7 +244,7 @@ export default function BillPOSHero() {
     <section
       ref={sectionRef}
       suppressHydrationWarning
-      className={`${sans.className} relative w-full overflow-hidden bg-white pt-24 sm:pt-28 lg:pt-36`}
+      className={`${sans.className} relative w-full overflow-hidden bg-white pt-[69px] sm:pt-[75px]`}
     >
       {/* keyframes */}
       <style>{`
@@ -256,13 +268,13 @@ export default function BillPOSHero() {
       `}</style>
 
       {/* ---------------------- visual stage ---------------------- */}
-      <div className="gsap-visual relative mx-auto w-full max-w-[1400px] px-3 pb-14 sm:px-6 sm:pb-20">
+      <div className="gsap-visual relative mx-auto w-full max-w-[1400px] px-3 pb-6 sm:px-6 sm:pb-8">
         <div className="relative overflow-hidden rounded-[26px] border border-slate-200/70 shadow-[0_50px_100px_-50px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
-          {/* image */}
+          {/* image — viewport-adaptive height so the entire hero fits on one screen */}
           <img
             src={heroScene}
             alt="Business using BillPOS point of sale"
-            className="gsap-scene h-[620px] w-full object-cover object-center grayscale contrast-[1.05] sm:h-[680px] lg:h-[760px]"
+            className="gsap-scene h-[560px] w-full object-cover object-center grayscale contrast-[1.05] sm:h-[600px] lg:h-[calc(100vh-160px)] lg:min-h-[560px] lg:max-h-[740px]"
           />
 
           {/* readability overlay */}
@@ -280,7 +292,7 @@ export default function BillPOSHero() {
 
               {/* heading */}
               <h1
-                className={`${serif.className} text-[28px] leading-[1.04] tracking-[-0.02em] text-[#111111] sm:text-[42px] md:text-[56px] lg:text-[76px]`}
+                className={`${serif.className} text-[28px] leading-[1.04] tracking-[-0.02em] text-[#111111] sm:text-[42px] md:text-[56px] lg:text-[72px]`}
               >
                 <span className="block">One Platform.</span>
                 <span className="block italic text-blue-700">
@@ -292,7 +304,7 @@ export default function BillPOSHero() {
               {/* description with typewriter animation */}
               <p
                 suppressHydrationWarning
-                className="mt-4 w-full max-w-[320px] break-words px-1 text-[10.5px] leading-[1.65] text-slate-600 sm:mt-5 sm:max-w-[460px] sm:text-[12.5px] md:max-w-[520px] md:text-[13.5px] lg:text-[15px]"
+                className="mt-4 w-full max-w-[320px] break-words px-1 text-[10.5px] leading-[1.65] text-slate-600 sm:mt-5 sm:max-w-[460px] sm:text-[12.5px] md:max-w-[520px] md:text-[13.5px] lg:text-[14.5px]"
               >
                 {descriptionText.split(" ").map((word, i) => (
                   <span
@@ -305,17 +317,18 @@ export default function BillPOSHero() {
               </p>
 
               {/* CTAs */}
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-2.5">
-                <Link
-                  href="#solutions"
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:mt-6 sm:gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => scrollToId("SolutionSelecter")}
                   className="group inline-flex items-center gap-1.5 rounded-full bg-blue-700 px-4 py-2 text-[11px] font-medium text-white shadow-[0_12px_28px_-14px_rgba(29,78,216,0.75)] transition hover:bg-blue-800 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-[12.5px] md:px-6 md:py-3 md:text-[13px]"
                 >
                   Explore Solutions
                   <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
-                </Link>
+                </button>
 
                 <Link
-                  href="#demo"
+                  href="/demo"
                   className="group inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/95 px-3.5 py-2 text-[11px] font-medium text-slate-800 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.6)] backdrop-blur transition hover:border-blue-300 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-[12.5px] md:px-5 md:py-3 md:text-[13px]"
                 >
                   Request a Demo
@@ -324,7 +337,7 @@ export default function BillPOSHero() {
               </div>
 
               {/* supporting text — auto-sliding marquee (DESKTOP ONLY, in-overlay) */}
-              <div className="mt-6 hidden w-full max-w-[640px] overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] lg:block">
+              <div className="mt-5 hidden w-full max-w-[640px] overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] lg:block">
                 <div
                   className="marquee-track flex w-max items-center"
                   style={{ animation: "marquee 26s linear infinite" }}
@@ -334,7 +347,7 @@ export default function BillPOSHero() {
                       {industries.map(({ name, Icon, tint }) => (
                         <span
                           key={`${dup}-${name}`}
-                          className="flex shrink-0 items-center gap-3 px-5 text-[16px] font-semibold tracking-wide text-slate-600"
+                          className="flex shrink-0 items-center gap-3 px-5 text-[15px] font-semibold tracking-wide text-slate-600"
                         >
                           <span
                             className={`flex h-7 w-7 items-center justify-center rounded-lg ${tint}`}
@@ -342,7 +355,7 @@ export default function BillPOSHero() {
                             <Icon className="h-4 w-4" />
                           </span>
                           {name}
-                          <span className="ml-2 text-[18px] text-slate-300">
+                          <span className="ml-2 text-[16px] text-slate-300">
                             •
                           </span>
                         </span>
@@ -354,77 +367,82 @@ export default function BillPOSHero() {
             </div>
           </div>
 
-          {/* ------------------ DESKTOP-ONLY feature cards (absolute, on image) ------------------ */}
-
-          {/* Live HUD — top of left column */}
-          <div
-            className="gsap-card anim pointer-events-none absolute left-[3%] top-[12%] z-20 hidden w-[220px] rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_24px_50px_-26px_rgba(15,23,42,0.5)] backdrop-blur-xl lg:block"
-            style={{
-              animation: "float-b 9.5s ease-in-out infinite",
-              animationDelay: "3.6s",
-            }}
-          >
-            <div className="mb-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-700 text-[9px] font-bold text-white">
-                  B
+          {/* ------------------ DESKTOP-ONLY feature cards ------------------
+           *  Wrapped in a flex column with a single `gap-5` so all three
+           *  cards sit with equal spacing between them, regardless of
+           *  hero height. No overlap.
+           * ---------------------------------------------------------------- */}
+          <div className="pointer-events-none absolute left-[3%] top-1/2 z-20 hidden w-[220px] -translate-y-1/2 flex-col gap-5 lg:flex">
+            {/* Live HUD — card 1 */}
+            <div
+              className="gsap-card anim rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_24px_50px_-26px_rgba(15,23,42,0.5)] backdrop-blur-xl"
+              style={{
+                animation: "float-b 9.5s ease-in-out infinite",
+                animationDelay: "3.6s",
+              }}
+            >
+              <div className="mb-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-700 text-[9px] font-bold text-white">
+                    B
+                  </span>
+                  <span className="text-[11.5px] font-semibold">BillPOS</span>
+                </div>
+                <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700">
+                  Live
                 </span>
-                <span className="text-[11.5px] font-semibold">BillPOS</span>
               </div>
-              <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700">
-                Live
+              <div className="flex h-14 items-end gap-1">
+                {[40, 62, 48, 75, 58, 90, 70].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t bg-gradient-to-t from-blue-700 to-blue-400"
+                    style={{ height: `${h}%` }}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 flex items-center gap-1 text-[9.5px] text-slate-400">
+                <BarChart3 className="h-2.5 w-2.5" /> Sales this week
+              </div>
+            </div>
+
+            {/* "Sell faster" — card 2 */}
+            <div
+              className="gsap-card anim rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_26px_55px_-30px_rgba(15,23,42,0.5)] backdrop-blur-xl"
+              style={{
+                animation: "float-a 8s ease-in-out infinite",
+                animationDelay: "3.8s",
+              }}
+            >
+              <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <ScanLine className="h-4 w-4" />
               </span>
+              <p className="text-[13.5px] font-semibold leading-snug text-[#111]">
+                Sell faster, from day one.
+              </p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
+                Billing, barcodes and receipts that just work.
+              </p>
             </div>
-            <div className="flex h-14 items-end gap-1">
-              {[40, 62, 48, 75, 58, 90, 70].map((h, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t bg-gradient-to-t from-blue-700 to-blue-400"
-                  style={{ height: `${h}%` }}
-                />
-              ))}
-            </div>
-            <div className="mt-2 flex items-center gap-1 text-[9.5px] text-slate-400">
-              <BarChart3 className="h-2.5 w-2.5" /> Sales this week
-            </div>
-          </div>
 
-          {/* "Sell faster" — middle of left column */}
-          <div
-            className="gsap-card anim pointer-events-none absolute left-[3%] top-[44%] z-20 hidden w-[220px] rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_26px_55px_-30px_rgba(15,23,42,0.5)] backdrop-blur-xl lg:block"
-            style={{
-              animation: "float-a 8s ease-in-out infinite",
-              animationDelay: "3.8s",
-            }}
-          >
-            <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-              <ScanLine className="h-4 w-4" />
-            </span>
-            <p className="text-[13.5px] font-semibold leading-snug text-[#111]">
-              Sell faster, from day one.
-            </p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
-              Billing, barcodes and receipts that just work.
-            </p>
-          </div>
-
-          {/* "Every outlet" — bottom of left column */}
-          <div
-            className="gsap-card anim pointer-events-none absolute left-[3%] bottom-[12%] z-20 hidden w-[220px] rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_26px_55px_-30px_rgba(15,23,42,0.5)] backdrop-blur-xl lg:block"
-            style={{
-              animation: "float-b 9s ease-in-out infinite",
-              animationDelay: "4s",
-            }}
-          >
-            <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-              <Boxes className="h-4 w-4" />
-            </span>
-            <p className="text-[13.5px] font-semibold leading-snug text-[#111]">
-              Every outlet, one view.
-            </p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
-              Inventory, purchasing and reports in sync.
-            </p>
+            {/* "Every outlet" — card 3 */}
+            <div
+              className="gsap-card anim rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_26px_55px_-30px_rgba(15,23,42,0.5)] backdrop-blur-xl"
+              style={{
+                animation: "float-b 9s ease-in-out infinite",
+                animationDelay: "4s",
+              }}
+            >
+              <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <Boxes className="h-4 w-4" />
+              </span>
+              <p className="text-[13.5px] font-semibold leading-snug text-[#111]">
+                Every outlet, one view.
+              </p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
+                Inventory, purchasing and reports in sync.
+              </p>
+            </div>
           </div>
 
           {/* rotating badge — top right (DESKTOP ONLY) */}
@@ -457,9 +475,9 @@ export default function BillPOSHero() {
           {/* trust line — bottom center (DESKTOP ONLY) */}
           <div className="gsap-zoom pointer-events-none absolute bottom-[4%] left-1/2 z-20 hidden -translate-x-1/2 text-center lg:block">
             <p className="text-[11.5px] leading-relaxed text-slate-500">
-              Trusted by 2,000+
-              <br />
-              businesses across Sri Lanka.
+
+
+              Trusted by 10 + businesses across Sri Lanka.
             </p>
           </div>
 
