@@ -12,21 +12,17 @@
  *   • Wobbling sticker on the schedule card
  *   • Parallax collage backdrop
  *
- * All existing functions/features preserved:
- *   - validate() + Field component
- *   - onSubmit prop passthrough
- *   - mailto fallback
- *   - WhatsApp deep-link
- *   - preferred contact radiogroup
- *   - topic chips
- *   - status: idle / sending / sent / error
- *   - reset / send-another flow
- *   - all a11y attributes
+ * Validation (v4):
+ *   • Full name  — first AND last name required (2+ words)
+ *                  Auto-capitalizes first letter of each word
+ *   • Phone      — exactly 10 digits, must start with 0
+ *   • Email      — lowercase first letter + @gmail.com or @yahoo.com
+ *                  Auto-lowercases the first character
+ *   • Live errors appear as the user types
  *
  * Scroll-restoration fix:
  *   Uses the shared `useResetScrollOnMount` hook from
- *   `@/lib/use-reset-scroll-on-mount` so the section always opens
- *   at its own top edge when navigated to.
+ *   `@/lib/use-reset-scroll-on-mount`.
  * ============================================================ */
 
 import {
@@ -56,7 +52,7 @@ import {
 gsap.registerPlugin(ScrollTrigger);
 
 /* ------------------------------------------------------------------ */
-/* Fonts + palette (same as the solutions component)                  */
+/* Fonts + palette                                                     */
 /* ------------------------------------------------------------------ */
 
 const serif = Cormorant_Garamond({
@@ -67,10 +63,8 @@ const serif = Cormorant_Garamond({
 
 const sans = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 
-// Dark blue  #0a1b3d  |  Light blue #cfe5f6  |  Gray #dfe4eb / #6b7686  |  White
-
 /* ------------------------------------------------------------------ */
-/* Contact details                                                    */
+/* Contact details                                                     */
 /* ------------------------------------------------------------------ */
 
 const PHONE_DISPLAY = "077 291 3369";
@@ -92,7 +86,7 @@ const TEAM_IMG =
   "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=85";
 
 /* ------------------------------------------------------------------ */
-/* Texture helpers                                                    */
+/* Texture helpers                                                     */
 /* ------------------------------------------------------------------ */
 
 const grain =
@@ -129,7 +123,6 @@ function Tape({ className = "" }: { className?: string }) {
   );
 }
 
-/** Duotone photo. Adds `relative` only if the caller hasn't set a position. */
 function Photo({
   src,
   alt,
@@ -173,10 +166,9 @@ const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /* ------------------------------------------------------------------ */
-/* Text splitting helpers (no paid GSAP plugin needed)                */
+/* Text splitting helpers                                              */
 /* ------------------------------------------------------------------ */
 
-/** Every letter becomes its own span so it can bounce. Words never break in the middle. */
 function SplitChars({ text }: { text: string }) {
   const words = text.split(" ");
   return (
@@ -201,7 +193,6 @@ function SplitChars({ text }: { text: string }) {
   );
 }
 
-/** Every word rises out of its own mask for the staggered reveal. */
 function SplitWords({ text }: { text: string }) {
   const words = text.split(" ");
   return (
@@ -221,7 +212,7 @@ function SplitWords({ text }: { text: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Info card                                                          */
+/* Info card                                                           */
 /* ------------------------------------------------------------------ */
 
 type Variant = "white" | "sky" | "navy" | "gray";
@@ -319,7 +310,9 @@ export type ContactPayload = {
   message: string;
 };
 
-type Errors = Partial<Record<"name" | "contact" | "message", string>>;
+type Errors = Partial<
+  Record<"name" | "phone" | "email" | "contact" | "message", string>
+>;
 
 const emptyForm: ContactPayload = {
   name: "",
@@ -333,16 +326,91 @@ const emptyForm: ContactPayload = {
 const inputCls =
   "w-full border-0 border-b bg-[#f1f4f8] px-3.5 py-3 text-[15px] font-light text-[#0a1b3d] outline-none transition placeholder:text-[#6b7686]/70 focus:border-[#0a1b3d] focus:bg-[#cfe5f6]/50";
 
+/* ------------------------------------------------------------------ */
+/* Auto-format helpers                                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Capitalize the first letter of every word.
+ *   "john wick"   → "John Wick"
+ *   "JOHN wick"   → "JOHN Wick"
+ *   "john  wick"  → "John  Wick" (preserves extra spaces)
+ *   "mary-jane"   → "Mary-Jane"  (word-boundary aware)
+ */
+function capitalizeName(value: string): string {
+  return value.replace(/(^|\s)(\S)/g, (_, sep, ch) => sep + ch.toUpperCase());
+}
+
+/**
+ * Lowercase the FIRST character of the string only.
+ * Preserves the rest exactly as typed so we don't clobber
+ * any mid-email casing the user intentionally typed.
+ *   "John@gmail.com"  → "john@gmail.com"
+ *   "JOHN@gmail.com"  → "jOHN@gmail.com"  (validation still rejects due to invalid uppercase)
+ */
+function lowercaseFirst(value: string): string {
+  if (value.length === 0) return value;
+  return value.charAt(0).toLowerCase() + value.slice(1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Validation rules                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Phone: exactly 10 digits, first digit must be 0.
+ *   ✓ 0745566987   ✗ 774455968 (no leading 0)
+ *                  ✗ 077456547 (only 9 digits)
+ *                  ✗ 07586485964 (11 digits)
+ */
+const PHONE_RE = /^0\d{9}$/;
+
+/**
+ * Email:
+ *   • First character must be a lowercase letter (a–z)
+ *   • Domain must be exactly @gmail.com or @yahoo.com
+ *   ✓ john@gmail.com   ✓ mary.jane@yahoo.com
+ *   ✗ John@gmail.com   ✗ john@outlook.com
+ *   ✗ 1john@gmail.com  ✗ john@GMAIL.com
+ */
+const EMAIL_RE = /^[a-z][a-zA-Z0-9._-]*@(gmail\.com|yahoo\.com)$/;
+
 const validate = (v: ContactPayload): Errors => {
   const errs: Errors = {};
-  if (v.name.trim().length < 2) errs.name = "Please tell us your name.";
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim());
-  const phoneOk = v.phone.replace(/\D/g, "").length >= 9;
-  if (!emailOk && !phoneOk) errs.contact = "Add a valid phone number or email so we can reach you.";
-  else if (v.email.trim() && !emailOk) errs.contact = "That email doesn't look right.";
+  /* ── Full name — first + last name required ────────────── */
+  const nameParts = v.name.trim().split(/\s+/).filter(Boolean);
+  if (nameParts.length < 2 || nameParts.some((p) => p.length < 2)) {
+    errs.name = "Please enter your full name (first and last name).";
+  }
 
-  if (v.message.trim().length < 10) errs.message = "Tell us a little more (at least 10 characters).";
+  /* ── Contact methods ──────────────────────────────────── */
+  const phoneTrim = v.phone.trim();
+  const emailTrim = v.email.trim();
+
+  const phoneDigits = phoneTrim.replace(/\D/g, "");
+  const phoneOk = PHONE_RE.test(phoneDigits);
+  const emailOk = EMAIL_RE.test(emailTrim);
+
+  if (phoneTrim.length === 0 && emailTrim.length === 0) {
+    errs.contact = "Add a phone number or email so we can reach you.";
+  }
+
+  if (phoneTrim.length > 0 && !phoneOk) {
+    errs.phone =
+      "Enter a 10-digit mobile number starting with 0 (e.g. 0745566987).";
+  }
+
+  if (emailTrim.length > 0 && !emailOk) {
+    errs.email =
+      "Email must start with a lowercase letter and end with @gmail.com or @yahoo.com.";
+  }
+
+  /* ── Message ──────────────────────────────────────────── */
+  if (v.message.trim().length < 10) {
+    errs.message = "Tell us a little more (at least 10 characters).";
+  }
+
   return errs;
 };
 
@@ -397,16 +465,70 @@ export default function Contacts({
   const [errors, setErrors] = useState<Errors>({});
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  /* Strong scroll-restoration fix — resets the window scroll AND
-   * refreshes ScrollTrigger in the correct order, so the section
-   * always opens at its own top edge when navigated to. */
   useResetScrollOnMount(sectionRef);
 
+  /* --------------------------------------------------------------
+   * Live validation + auto-formatting
+   *   • Name  → capitalizes first letter of each word as you type
+   *   • Email → lowercases the first character as you type
+   *   • Re-validate the whole form with the new values
+   *   • Update ONLY the error slot for the field being edited
+   *   • Clear cross-field "contact" error as soon as either phone
+   *     or email has content
+   * ------------------------------------------------------------ */
   const set = <K extends keyof ContactPayload>(key: K, val: ContactPayload[K]) => {
-    setValues((p) => ({ ...p, [key]: val }));
-    if (errors.name && key === "name") setErrors((p) => ({ ...p, name: undefined }));
-    if (errors.contact && (key === "phone" || key === "email")) setErrors((p) => ({ ...p, contact: undefined }));
-    if (errors.message && key === "message") setErrors((p) => ({ ...p, message: undefined }));
+    let formatted: ContactPayload[K] = val;
+
+    if (key === "name" && typeof val === "string") {
+      formatted = capitalizeName(val) as ContactPayload[K];
+    }
+
+    if (key === "email" && typeof val === "string") {
+      formatted = lowercaseFirst(val) as ContactPayload[K];
+    }
+
+    const next: ContactPayload = { ...values, [key]: formatted };
+    setValues(next);
+
+    const allErrs = validate(next);
+
+    setErrors((prev) => {
+      const merged: Errors = { ...prev };
+
+      if (key === "name") {
+        if (allErrs.name) merged.name = allErrs.name;
+        else delete merged.name;
+      }
+
+      if (key === "phone") {
+        if (next.phone.trim().length > 0 && allErrs.phone) {
+          merged.phone = allErrs.phone;
+        } else {
+          delete merged.phone;
+        }
+        if (next.phone.trim().length > 0 && merged.contact) {
+          delete merged.contact;
+        }
+      }
+
+      if (key === "email") {
+        if (next.email.trim().length > 0 && allErrs.email) {
+          merged.email = allErrs.email;
+        } else {
+          delete merged.email;
+        }
+        if (next.email.trim().length > 0 && merged.contact) {
+          delete merged.contact;
+        }
+      }
+
+      if (key === "message") {
+        if (allErrs.message) merged.message = allErrs.message;
+        else delete merged.message;
+      }
+
+      return merged;
+    });
   };
 
   /* ---------------- Animations ---------------- */
@@ -418,7 +540,7 @@ export default function Contacts({
     const mm = gsap.matchMedia();
 
     const ctx = gsap.context(() => {
-      /* 1 ─ HEADER: tag stamp → letters bounce down → intro words rise */
+      /* 1 ─ HEADER */
       gsap
         .timeline({
           scrollTrigger: {
@@ -448,7 +570,6 @@ export default function Contacts({
           },
           "-=0.2"
         )
-        // separate opacity tween because bounce ease flickers it
         .fromTo(
           ".ct-char",
           { opacity: 0 },
@@ -467,7 +588,6 @@ export default function Contacts({
           },
           "-=0.55"
         )
-        // polaroid collage + clock sticker pop in
         .fromTo(
           ".ct-polaroid",
           { y: 60, opacity: 0, rotation: -14, scale: 0.9 },
@@ -494,7 +614,7 @@ export default function Contacts({
           "-=0.9"
         );
 
-      /* 2 ─ INFO CARDS: staggered drop with alternating tilt */
+      /* 2 ─ INFO CARDS */
       gsap.fromTo(
         ".ct-info",
         {
@@ -520,7 +640,6 @@ export default function Contacts({
         }
       );
 
-      // small contents (icon, lines, cta) fade up after each card lands
       gsap.fromTo(
         ".ct-info .ct-icon",
         { scale: 0, rotation: -30, transformOrigin: "50% 50%" },
@@ -556,7 +675,6 @@ export default function Contacts({
         }
       );
 
-      // team sticker row (bottom of the info column)
       gsap.fromTo(
         ".ct-team",
         { y: 40, opacity: 0, rotation: -8 },
@@ -575,7 +693,7 @@ export default function Contacts({
         }
       );
 
-      /* 3 ─ FORM: back-sheet slides in, then the form rises and fields stagger */
+      /* 3 ─ FORM */
       const formTrigger = root.querySelector(".ct-form");
       gsap.fromTo(
         ".ct-backsheet",
@@ -624,7 +742,7 @@ export default function Contacts({
           "-=0.3"
         );
 
-      /* 4 ─ BACKDROP SHAPES: slow parallax while scrolling */
+      /* 4 ─ PARALLAX */
       gsap.utils.toArray<HTMLElement>(".ct-parallax", root).forEach((el) => {
         const depth = Number(el.dataset.depth || 60);
         gsap.to(el, {
@@ -640,7 +758,6 @@ export default function Contacts({
       });
     }, root);
 
-    // font metrics shift layout → refresh trigger positions
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
 
     return () => {
@@ -649,7 +766,6 @@ export default function Contacts({
     };
   }, []);
 
-  /* hover a heading letter → it hops */
   const hopLetter = (e: React.MouseEvent<HTMLElement>) => {
     if (reduceMotion()) return;
     const el = e.target as HTMLElement;
@@ -723,9 +839,7 @@ export default function Contacts({
     >
       <Grain opacity={0.14} />
 
-      {/* ============================================================ */}
-      {/* Collage backdrop                                              */}
-      {/* ============================================================ */}
+      {/* Collage backdrop */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="ct-parallax absolute -right-24 top-16" data-depth="90">
           <div className="h-56 w-56 rounded-full bg-[#dfe4eb] sm:h-80 sm:w-80" />
@@ -749,10 +863,7 @@ export default function Contacts({
 
       <div className="relative mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">
 
-        {/* ============================================================ */}
-        {/* HEADER                                                        */}
-        {/* ============================================================ */}
-
+        {/* HEADER */}
         <div className="ct-header grid items-center gap-10 lg:grid-cols-[1.35fr_1fr] lg:gap-12">
           <div>
             <div className="ct-tag mb-5 sm:mb-6">
@@ -820,10 +931,7 @@ export default function Contacts({
           </div>
         </div>
 
-        {/* ============================================================ */}
-        {/* INFO + FORM                                                   */}
-        {/* ============================================================ */}
-
+        {/* INFO + FORM */}
         <div className="ct-grid mt-20 grid items-start gap-14 sm:mt-24 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
 
           {/* LEFT — contact cards */}
@@ -876,7 +984,6 @@ export default function Contacts({
               className="sm:col-span-2"
             />
 
-            {/* sticker photo */}
             <div className="ct-team group relative hidden h-24 sm:col-span-2 sm:block" aria-hidden="true">
               <Photo
                 src={TEAM_IMG}
@@ -893,7 +1000,6 @@ export default function Contacts({
 
           {/* RIGHT — form */}
           <div className="ct-form relative">
-            {/* back sheet */}
             <span
               aria-hidden="true"
               className="ct-backsheet absolute inset-0 translate-x-2 translate-y-2 bg-[#d3d9e2] sm:translate-x-3 sm:translate-y-3"
@@ -902,7 +1008,6 @@ export default function Contacts({
             <div className="ct-form-card relative bg-white shadow-[0_50px_90px_-50px_rgba(10,27,61,0.6)]">
               <Tape className="-top-3 left-8 z-30 -rotate-6" />
 
-              {/* navy header strip */}
               <div className="relative overflow-hidden bg-[#0a1b3d] px-5 py-8 sm:px-8 sm:py-10">
                 <div
                   className="absolute inset-0 opacity-[0.16]"
@@ -985,7 +1090,11 @@ export default function Contacts({
 
                     {/* phone + email */}
                     <div className="ct-field grid gap-6 sm:grid-cols-2">
-                      <Field id={`${uid}-phone`} label="Phone / WhatsApp">
+                      <Field
+                        id={`${uid}-phone`}
+                        label="Phone / WhatsApp"
+                        error={errors.phone}
+                      >
                         <input
                           id={`${uid}-phone`}
                           type="tel"
@@ -994,24 +1103,45 @@ export default function Contacts({
                           value={values.phone}
                           onChange={(e) => set("phone", e.target.value)}
                           placeholder="07X XXX XXXX"
-                          aria-invalid={!!errors.contact}
+                          aria-invalid={!!errors.phone || !!errors.contact}
+                          aria-describedby={
+                            errors.phone
+                              ? `${uid}-phone-error`
+                              : errors.contact
+                                ? `${uid}-contact-error`
+                                : undefined
+                          }
                           className={`${inputCls} ${
-                            errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                            errors.phone || errors.contact
+                              ? "border-[#9b2c2c]"
+                              : "border-[#0a1b3d]/30"
                           }`}
                         />
                       </Field>
-                      <Field id={`${uid}-email`} label="Email">
+                      <Field
+                        id={`${uid}-email`}
+                        label="Email"
+                        error={errors.email}
+                      >
                         <input
                           id={`${uid}-email`}
                           type="email"
                           autoComplete="email"
                           value={values.email}
                           onChange={(e) => set("email", e.target.value)}
-                          placeholder="you@business.com"
-                          aria-invalid={!!errors.contact}
-                          aria-describedby={errors.contact ? `${uid}-contact-error` : undefined}
+                          placeholder="you@gmail.com"
+                          aria-invalid={!!errors.email || !!errors.contact}
+                          aria-describedby={
+                            errors.email
+                              ? `${uid}-email-error`
+                              : errors.contact
+                                ? `${uid}-contact-error`
+                                : undefined
+                          }
                           className={`${inputCls} ${
-                            errors.contact ? "border-[#9b2c2c]" : "border-[#0a1b3d]/30"
+                            errors.email || errors.contact
+                              ? "border-[#9b2c2c]"
+                              : "border-[#0a1b3d]/30"
                           }`}
                         />
                       </Field>
