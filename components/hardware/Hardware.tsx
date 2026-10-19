@@ -1925,7 +1925,7 @@ export default function Hardware() {
         <div className="mt-24 sm:mt-32">
           <div className="hw-stack-head max-w-[760px]">
             <h2
-              className={`${serif.className} text-[38px] font-light leading-[1] tracking-[-0.02em] sm:text-[60px] lg:text-[72px]`}
+              className={`${serif.className} text-[38px] font-light leading-[1.5] tracking-[-0.02em] sm:text-[54px] lg:text-[66px]`}
             >
               <span className="sr-only">Equipment categories we cover</span>
               <span aria-hidden="true">
