@@ -118,7 +118,7 @@ const socialLinks = [
   },
   {
     label: "Email",
-    href: "mailto:hello@qdeskai.com",
+    href: "mailto:Support@qdeskAI.com",
     icon: MailIcon,
   },
 ];
@@ -156,7 +156,7 @@ const footerColumns = [
 const contactItems = [
   {
     label: "hello@qdeskai.com",
-    href: "mailto:hello@qdeskai.com",
+    href: "mailto:Support@qdeskAI.com",
     icon: Mail,
   },
   {
@@ -639,7 +639,7 @@ export default function Footer() {
 
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
             <Link
-              href="/privacy"
+              href="https://qdeskai.com/"
               className="
                 text-[11px]
                 text-white/35
@@ -652,7 +652,7 @@ export default function Footer() {
             </Link>
 
             <Link
-              href="/terms"
+              href="https://qdeskai.com/"
               className="
                 text-[11px]
                 text-white/35
