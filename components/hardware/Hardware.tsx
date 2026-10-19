@@ -226,12 +226,12 @@ function SplitWords({ text }: { text: string }) {
 /* Content                                                            */
 /* ------------------------------------------------------------------ */
 
-const PHONE_DISPLAY = "077 291 3369";
-const PHONE_TEL = "tel:0772913369";
-const EMAIL = "hello@qdeskai.com";
+const PHONE_DISPLAY = "0706833644";
+const PHONE_TEL = "tel:0706833644";
+const EMAIL = "support@qdeskai.com";
 
 /** WhatsApp number in international format, digits only (no +). */
-const WA_NUMBER = "94772913369";
+const WA_NUMBER = "947706833644";
 
 const waLink = (message: string) =>
   `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -2106,17 +2106,7 @@ export default function Hardware() {
         </div>
       </div>
 
-      {/* Floating WhatsApp shortcut */}
-      <a
-        href={WA_GENERAL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Request a quotation on WhatsApp"
-        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[#0a1b3d] px-4 py-3.5 text-[14px] font-normal text-white shadow-[0_18px_40px_-12px_rgba(10,27,61,0.7)] transition hover:-translate-y-0.5 hover:bg-[#12306a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0a1b3d] focus-visible:ring-offset-2 sm:px-5"
-      >
-        <MessageCircle className="h-5 w-5" />
-        <span className="hidden sm:inline">Get a quotation</span>
-      </a>
+
     </section>
   );
 }

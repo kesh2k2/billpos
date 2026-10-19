@@ -118,7 +118,7 @@ const socialLinks = [
   },
   {
     label: "Email",
-    href: "mailto:hello@qdeskai.com",
+    href: "mailto:support@qdeskai.com",
     icon: MailIcon,
   },
 ];
@@ -156,7 +156,7 @@ const footerColumns = [
 const contactItems = [
   {
     label: "hello@qdeskai.com",
-    href: "mailto:hello@qdeskai.com",
+    href: "mailto:support@qdeskai.com",
     icon: Mail,
   },
   {
