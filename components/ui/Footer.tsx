@@ -155,7 +155,7 @@ const footerColumns = [
 
 const contactItems = [
   {
-    label: "hello@qdeskai.com",
+    label: "Support@qdeskAI.com",
     href: "mailto:Support@qdeskAI.com",
     icon: Mail,
   },

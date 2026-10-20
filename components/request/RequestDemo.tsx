@@ -27,6 +27,15 @@
  * Scroll-restoration fix:
  *   Uses the shared `useResetScrollOnMount` hook from
  *   `@/lib/use-reset-scroll-on-mount`.
+ *
+ * EmailJS:
+ *   Uses ONE shared template with the Contact form. The template
+ *   reads `form_type` to render the correct header/subject, and
+ *   hides the other form's fields via `{{#if}}` conditionals.
+ *   Env vars:
+ *     NEXT_PUBLIC_EMAILJS_SERVICE_ID
+ *     NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+ *     NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
  * ============================================================ */
 
 import {
@@ -39,6 +48,7 @@ import {
 import { Cormorant_Garamond, Jost } from "next/font/google";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import emailjs from "@emailjs/browser";
 import { useResetScrollOnMount } from "@/lib/use-reset-scroll-on-mount";
 import {
   AlertCircle,
@@ -73,13 +83,21 @@ const sans = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 /* Contact details                                                    */
 /* ------------------------------------------------------------------ */
 
-const EMAIL = "hello@qdeskai.com";
+const EMAIL = "Support@qdeskAI.com";
 const PHONE_DISPLAY = "077 291 3369";
 const PHONE_TEL = "+94772913369";
 const WHATSAPP_NUMBER = "94772913369";
 
 const HEADER_IMG =
   "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=85";
+
+/* ------------------------------------------------------------------ */
+/* EmailJS (single shared template for Contact + Demo)               */
+/* ------------------------------------------------------------------ */
+
+const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!;
+const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!;
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!;
 
 /* ------------------------------------------------------------------ */
 /* Texture helpers                                                    */
@@ -442,7 +460,7 @@ export default function RequestDemo({
 }: {
   /**
    * Optional API hook. Return a promise; throw to trigger the error state.
-   * If omitted, the form opens a mailto: to hello@qdeskai.com.
+   * If omitted, the form sends directly through EmailJS using the shared template.
    */
   onSubmit?: (data: DemoPayload) => Promise<void>;
 }) {
@@ -773,17 +791,38 @@ export default function RequestDemo({
     setStatus("sending");
     try {
       if (onSubmit) {
+        /* Custom handler provided — delegate entirely to it. */
         await onSubmit(values);
       } else {
-        const subject = `Demo request — ${values.name.trim()}${
-          values.businessType ? ` (${values.businessType})` : ""
-        }`;
-        window.location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(
-          subject
-        )}&body=${encodeURIComponent(buildText())}`;
+        /* Default: send via EmailJS (single shared template). */
+        const response = await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          {
+            form_type: "Demo request",
+            from_name: values.name.trim(),
+            phone: values.phone.trim() || "Not provided",
+            from_email: values.email.trim() || "Not provided",
+            preferred_contact: values.preferred,
+            business_name: values.business.trim() || "Not specified",
+            business_type: values.businessType || "Not specified",
+            team_size: values.teamSize || "Not specified",
+            locations: values.locations || "Not specified",
+            preferred_date: values.date,
+            preferred_time: values.timeSlot,
+            focus: values.focus.trim(),
+            notes: values.notes.trim(),
+          },
+          { publicKey: EMAILJS_PUBLIC_KEY }
+        );
+
+        if (response.status !== 200) {
+          throw new Error(`EmailJS responded with status ${response.status}`);
+        }
       }
       setStatus("sent");
-    } catch {
+    } catch (error) {
+      console.error("Failed to send demo request:", error);
       setStatus("error");
     }
   };
@@ -1049,9 +1088,8 @@ export default function RequestDemo({
                       Thank you{firstName ? `, ${firstName}` : ""}.
                     </p>
                     <p className="mx-auto mt-4 max-w-[400px] text-[14.5px] font-light leading-7 text-[#0a1b3d]/75">
-                      {onSubmit
-                        ? "We'll confirm your demo by email or WhatsApp within one working day. Talk soon!"
-                        : "Your email app should now be open with your demo request ready to send. Prefer a faster reply? Reach us on WhatsApp."}
+                      We&apos;ll confirm your demo by email or WhatsApp within one
+                      working day. Talk soon!
                     </p>
                     <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
                       <button
