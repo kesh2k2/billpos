@@ -23,6 +23,15 @@
  * Scroll-restoration fix:
  *   Uses the shared `useResetScrollOnMount` hook from
  *   `@/lib/use-reset-scroll-on-mount`.
+ *
+ * EmailJS:
+ *   Uses ONE shared template for both Contact and Demo forms.
+ *   The template reads `form_type` to render the correct
+ *   header/subject and hides the other form's fields via
+ *   `{{#if}}` conditionals. Env vars:
+ *     NEXT_PUBLIC_EMAILJS_SERVICE_ID
+ *     NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+ *     NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
  * ============================================================ */
 
 import {
@@ -35,6 +44,7 @@ import {
 import { Cormorant_Garamond, Jost } from "next/font/google";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import emailjs from "@emailjs/browser";
 import { useResetScrollOnMount } from "@/lib/use-reset-scroll-on-mount";
 import {
   AlertCircle,
@@ -67,8 +77,8 @@ const sans = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 /* Contact details                                                     */
 /* ------------------------------------------------------------------ */
 
-const PHONE_DISPLAY = "077 291 3369";
-const PHONE_TEL = "+94772913369";
+const PHONE_DISPLAY = "070 683 3644";
+const PHONE_TEL = "+94706833644";
 const WHATSAPP_NUMBER = "+94706833644";
 const EMAIL = "Support@qdeskAI.com";
 const HOURS = "Mon – Fri: 10am to 5pm";
@@ -84,6 +94,14 @@ const HEADER_IMG =
   "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=85";
 const TEAM_IMG =
   "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=85";
+
+/* ------------------------------------------------------------------ */
+/* EmailJS (single shared template for Contact + Demo)                 */
+/* ------------------------------------------------------------------ */
+
+const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!;
+const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!;
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!;
 
 /* ------------------------------------------------------------------ */
 /* Texture helpers                                                     */
@@ -455,7 +473,7 @@ export default function Contacts({
 }: {
   /**
    * Optional. Plug in your API here (return a promise; throw to show the error state).
-   * If omitted, the form opens an email to hello@qdeskai.com with the message pre-filled.
+   * If omitted, the form sends directly through EmailJS using the shared template.
    */
   onSubmit?: (data: ContactPayload) => Promise<void>;
 }) {
@@ -793,17 +811,32 @@ export default function Contacts({
     setStatus("sending");
     try {
       if (onSubmit) {
+        /* Custom handler provided — delegate entirely to it. */
         await onSubmit(values);
       } else {
-        const subject = `Enquiry from ${values.name.trim()}${
-          values.topic ? ` — ${values.topic}` : ""
-        }`;
-        window.location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(
-          subject
-        )}&body=${encodeURIComponent(buildText())}`;
+        /* Default: send via EmailJS (single shared template). */
+        const response = await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          {
+            form_type: "Contact enquiry",
+            from_name: values.name.trim(),
+            phone: values.phone.trim() || "Not provided",
+            from_email: values.email.trim() || "Not provided",
+            preferred_contact: values.preferred,
+            topic: values.topic || "Not specified",
+            message: values.message.trim(),
+          },
+          { publicKey: EMAILJS_PUBLIC_KEY }
+        );
+
+        if (response.status !== 200) {
+          throw new Error(`EmailJS responded with status ${response.status}`);
+        }
       }
       setStatus("sent");
-    } catch {
+    } catch (error) {
+      console.error("Failed to send contact form:", error);
       setStatus("error");
     }
   };
@@ -1042,9 +1075,8 @@ export default function Contacts({
                       Thank you{firstName ? `, ${firstName}` : ""}.
                     </p>
                     <p className="mx-auto mt-4 max-w-[380px] text-[14.5px] font-light leading-7 text-[#0a1b3d]/75">
-                      {onSubmit
-                        ? "Your message has been sent. We'll get back to you during working hours (Mon – Fri, 10am to 5pm)."
-                        : "Your email app should now be open with your message ready to send. Prefer chat? Reach us on WhatsApp instead."}
+                      Your message has been sent. We&apos;ll get back to you during
+                      working hours (Mon – Fri, 10am to 5pm).
                     </p>
                     <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
                       <button
