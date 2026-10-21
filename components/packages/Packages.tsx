@@ -12,6 +12,13 @@
  *   Uses the shared `useResetScrollOnMount` hook from
  *   `@/lib/use-reset-scroll-on-mount` so the section always opens
  *   at its own top edge when navigated to.
+ *
+ * Firestore-backed content:
+ *   The public page reads package content from the `packages`
+ *   collection so admin edits appear live. If the collection is
+ *   empty (fresh install), it falls back to DEFAULT_PACKAGES so
+ *   the site never renders blank. Styling (card colors, tilt,
+ *   etc.) always comes from the local default of the same `key`.
  * ============================================================ */
 
 import {
@@ -26,6 +33,8 @@ import { Cormorant_Garamond, Jost } from "next/font/google";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useResetScrollOnMount } from "@/lib/use-reset-scroll-on-mount";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import {
   ArrowUpRight,
   Check,
@@ -168,7 +177,7 @@ type Pkg = {
   tilt: string;
 };
 
-const packages: Pkg[] = [
+const DEFAULT_PACKAGES: Pkg[] = [
   {
     key: "starter",
     name: "Starter",
@@ -476,6 +485,73 @@ export default function Packages() {
   const sectionRef = useRef<HTMLElement>(null);
   const [quoteFor, setQuoteFor] = useState<string | null>(null);
 
+  /* Live package content from Firestore (admin-editable).
+   * If the collection is empty, we render DEFAULT_PACKAGES
+   * so the site never shows blank cards. Styling always comes
+   * from the local default of the matching `key`. */
+  const [livePackages, setLivePackages] = useState<Pkg[]>(DEFAULT_PACKAGES);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "packages"),
+      (snap) => {
+        if (snap.empty) {
+          setLivePackages(DEFAULT_PACKAGES);
+          return;
+        }
+
+        type FirestorePkg = {
+          key: string;
+          name?: string;
+          tagline?: string;
+          inherits?: string | null;
+          features?: string[];
+          featured?: boolean;
+          order?: number;
+        };
+
+        const items = snap.docs.map((d) => {
+          const data = d.data() as FirestorePkg;
+          const base =
+            DEFAULT_PACKAGES.find((p) => p.key === data.key) ?? DEFAULT_PACKAGES[0];
+
+          return {
+            // styling always from the local default
+            card: base.card,
+            sub: base.sub,
+            check: base.check,
+            tilt: base.tilt,
+            // content from Firestore (fallback to default when missing)
+            key: data.key,
+            name: data.name ?? base.name,
+            tagline: data.tagline ?? base.tagline,
+            inherits: data.inherits ?? undefined,
+            features: Array.isArray(data.features) && data.features.length > 0
+              ? data.features
+              : base.features,
+            featured:
+              typeof data.featured === "boolean" ? data.featured : base.featured,
+            // keep original ordering when admin hasn't set one
+            __order:
+              typeof data.order === "number"
+                ? data.order
+                : DEFAULT_PACKAGES.findIndex((p) => p.key === data.key),
+          } as Pkg & { __order: number };
+        });
+
+        items.sort((a, b) => (a.__order ?? 999) - (b.__order ?? 999));
+
+        setLivePackages(items.map(({ __order, ...rest }) => rest as Pkg));
+      },
+      (err) => {
+        console.error("[Packages] firestore:", err);
+        // Silent fallback to defaults — no user-facing error
+      }
+    );
+
+    return () => unsub();
+  }, []);
+
   /* Strong scroll-restoration fix — resets the window scroll AND
    * refreshes ScrollTrigger in the correct order, so the section
    * always opens at its own top edge when navigated to. */
@@ -730,7 +806,7 @@ export default function Packages() {
         {/* ============================================================ */}
 
         <div className="pk-grid mt-16 grid items-stretch gap-10 sm:mt-20 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-          {packages.map((pkg) => (
+          {livePackages.map((pkg) => (
             <article key={pkg.key} className="pk-card relative">
               <div
                 className={`relative flex h-full rotate-[var(--r)] flex-col p-6 shadow-[0_30px_50px_-30px_rgba(10,27,61,0.55)] transition-transform duration-500 hover:-translate-y-1 hover:rotate-0 sm:p-8 ${pkg.card} ${

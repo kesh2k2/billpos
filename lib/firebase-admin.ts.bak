@@ -1,0 +1,79 @@
+// scripts/verify-firebase.ts
+// ────────────────────────────────────────────────────────────────────
+// Standalone Node verification. Deliberately does NOT import
+// lib/firebase-admin.ts — that file has `import "server-only"` which
+// only resolves cleanly inside the Next.js server runtime. Here we
+// build the Admin SDK app directly with the same config the app uses.
+//
+// Run with:  npx tsx scripts/verify-firebase.ts
+// Delete this file once all ✅ appear.
+// ────────────────────────────────────────────────────────────────────
+
+import { config } from "dotenv";
+import path from "node:path";
+
+async function main() {
+  // ── [1] Load .env.local ────────────────────────────────────────
+  console.log("→ [1/5] Loading .env.local…");
+  const envPath = path.resolve(process.cwd(), ".env.local");
+  const result = config({ path: envPath });
+  if (result.error) {
+    throw new Error(`Cannot load ${envPath}: ${result.error.message}`);
+  }
+  console.log("✅ .env.local loaded");
+
+  for (const key of [
+    "FIREBASE_PROJECT_ID",
+    "FIREBASE_CLIENT_EMAIL",
+    "FIREBASE_PRIVATE_KEY",
+  ]) {
+    if (!process.env[key]) throw new Error(`Missing env var: ${key}`);
+  }
+  console.log("✅ All FIREBASE_* env vars present");
+
+  // ── [2] Initialize Admin SDK directly ──────────────────────────
+  console.log("→ [2/5] Initializing Admin SDK…");
+  const { cert, initializeApp } = await import("firebase-admin/app");
+  const { getAuth } = await import("firebase-admin/auth");
+  const { getFirestore } = await import("firebase-admin/firestore");
+
+  const app = initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID!,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, "\n"),
+    }),
+  });
+  console.log("✅ Admin SDK initialized");
+
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ── [3] Admin Auth ─────────────────────────────────────────────
+  console.log("→ [3/5] Testing Admin Auth…");
+  const sample = await auth.listUsers(1);
+  console.log(`✅ Admin Auth OK — users in first page: ${sample.users.length}`);
+
+  // ── [4] Firestore write ────────────────────────────────────────
+  console.log("→ [4/5] Testing Firestore write…");
+  const testRef = db.collection("_health").doc("verify");
+  await testRef.set({ ok: true, ts: new Date().toISOString() });
+  console.log("✅ Firestore write OK");
+
+  // ── [5] Firestore read + cleanup ───────────────────────────────
+  console.log("→ [5/5] Testing Firestore read + cleanup…");
+  const snap = await testRef.get();
+  console.log("✅ Firestore read OK — data:", snap.data());
+  await testRef.delete();
+  console.log("✅ Cleanup done");
+  console.log("");
+  console.log("🎉 Admin SDK is fully operational. Delete this script.");
+}
+
+main().catch((err) => {
+  console.error("");
+  console.error("❌ FAILED");
+  console.error("   Message:", err?.message ?? err);
+  if (err?.stack) console.error("   Stack:", err.stack);
+  process.exit(1);
+});
