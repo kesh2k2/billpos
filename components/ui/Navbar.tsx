@@ -103,7 +103,8 @@ const themeStyles: Record<
     mobileArrowActive: "text-[#cfe5f6]",
     mobileArrowInactive: "text-white/40",
     logoMark: "border-white/15 bg-white/10 text-[#cfe5f6]",
-    cta: "bg-[#cfe5f6] text-[#0a1b3d] hover:bg-white shadow-[0_4px_18px_rgba(207,229,246,0.25)] hover:shadow-[0_8px_24px_rgba(207,229,246,0.35)]",
+    // Updated Glassy CTA
+    cta: "bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_4px_15px_rgba(0,0,0,0.1)]",
     avatarRing: "ring-[#cfe5f6]/30",
   },
 
@@ -136,7 +137,8 @@ const themeStyles: Record<
     mobileArrowActive: "text-[#0a1b3d]",
     mobileArrowInactive: "text-[#6b7686]/80",
     logoMark: "border-[#0a1b3d]/[0.10] bg-[#0a1b3d]/[0.04] text-[#0a1b3d]",
-    cta: "bg-[#0a1b3d] text-white hover:bg-[#12306a] shadow-[0_4px_18px_rgba(10,27,61,0.18)] hover:shadow-[0_8px_24px_rgba(10,27,61,0.25)]",
+    // Updated Glassy CTA
+    cta: "bg-[#0a1b3d]/80 backdrop-blur-md border border-white/10 text-white hover:bg-[#0a1b3d] shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_15px_rgba(0,0,0,0.1)]",
     avatarRing: "ring-white/40",
   },
 
@@ -169,7 +171,8 @@ const themeStyles: Record<
     mobileArrowActive: "text-[#cfe5f6]",
     mobileArrowInactive: "text-white/35",
     logoMark: "border-white/[0.14] bg-white/[0.07] text-[#cfe5f6]",
-    cta: "bg-[#cfe5f6] text-[#0a1b3d] hover:bg-white shadow-[0_4px_18px_rgba(207,229,246,0.2)] hover:shadow-[0_8px_24px_rgba(207,229,246,0.3)]",
+    // Updated Glassy CTA
+    cta: "bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_15px_rgba(0,0,0,0.1)]",
     avatarRing: "ring-[#cfe5f6]/30",
   },
 };
@@ -668,7 +671,7 @@ export default function Navbar() {
               href="/demo"
               className={`
                 group relative inline-flex h-[42px] items-center gap-2
-                overflow-hidden rounded-xl border border-transparent px-4
+                overflow-hidden rounded-xl px-4
                 text-[12px] font-semibold tracking-wide
                 transition-all duration-300 hover:-translate-y-0.5
                 ${theme.cta}
@@ -720,14 +723,14 @@ export default function Navbar() {
             transition-all duration-300 ease-out sm:px-5 lg:hidden
             ${
               mobileMenuOpen
-                ? "pointer-events-auto max-h-[900px] translate-y-0 pt-2 opacity-100"
+                ? "pointer-events-auto max-h-[100dvh] translate-y-0 pt-2 opacity-100"
                 : "pointer-events-none max-h-0 -translate-y-2 opacity-0"
             }
           `}
         >
           <div
             className={`
-              mx-auto max-w-xl rounded-2xl border p-3
+              mx-auto max-w-xl max-h-[calc(100dvh-100px)] overflow-y-auto overscroll-contain rounded-2xl border p-3
               backdrop-blur-2xl transition-colors duration-500
               ${theme.mobilePanel}
             `}

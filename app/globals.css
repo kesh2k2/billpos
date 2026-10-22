@@ -28,3 +28,16 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Hide default password reveal icon in Edge/Chrome */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+/* For Safari */
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}
